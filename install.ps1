@@ -52,6 +52,20 @@ function Write-Step($n, $text) {
 function Write-Ok($text) { Write-Host ('    OK  ' + $text) -ForegroundColor Green }
 function Write-Warn2($text) { Write-Host ('    !   ' + $text) -ForegroundColor Yellow }
 function Write-Fail($text) { Write-Host ('    X   ' + $text) -ForegroundColor Red }
+function Get-Sha256Hex {
+    # 不依赖 Get-FileHash（部分精简/受限环境会自动加载模块失败），直接用 .NET 计算
+    param([string]$FilePath)
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    $stream = $null
+    try {
+        $stream = [System.IO.File]::OpenRead($FilePath)
+        $bytes = $sha.ComputeHash($stream)
+        return (($bytes | ForEach-Object { $_.ToString('x2') }) -join '')
+    } finally {
+        if ($stream) { $stream.Dispose() }
+        $sha.Dispose()
+    }
+}
 
 function Wait-Key {
     if ($NoPause) { return }
@@ -191,7 +205,7 @@ function Assert-Package {
             $manifest = Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
             if ($manifest.jarSha256) {
                 Write-Host '    正在校验程序文件完整性...' -ForegroundColor DarkGray
-                $actual = (Get-FileHash -LiteralPath (Join-Path $Root 'OfferChaser.jar') -Algorithm SHA256).Hash
+                $actual = Get-Sha256Hex -FilePath (Join-Path $Root 'OfferChaser.jar')
                 if ($actual.ToUpperInvariant() -ne ([string]$manifest.jarSha256).ToUpperInvariant()) {
                     throw 'OfferChaser.jar 校验值不一致，安装包可能下载不完整，请重新下载 zip。'
                 }

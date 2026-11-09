@@ -54,6 +54,20 @@ function Write-Step($n, $text) {
 }
 
 function Write-Ok($text) { Write-Host ('    OK  ' + $text) -ForegroundColor Green }
+function Get-Sha256Hex {
+    # 不依赖 Get-FileHash（部分精简/受限环境会自动加载模块失败），直接用 .NET 计算
+    param([string]$FilePath)
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    $stream = $null
+    try {
+        $stream = [System.IO.File]::OpenRead($FilePath)
+        $bytes = $sha.ComputeHash($stream)
+        return (($bytes | ForEach-Object { $_.ToString('x2') }) -join '')
+    } finally {
+        if ($stream) { $stream.Dispose() }
+        $sha.Dispose()
+    }
+}
 function Write-Warn2($text) { Write-Host ('    !   ' + $text) -ForegroundColor Yellow }
 
 function Wait-Key {
@@ -254,7 +268,7 @@ try {
                 }
             }
             if (-not $expected) { throw 'SHA256SUMS.txt 里没有这个包的校验值' }
-            $actual = (Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash
+            $actual = Get-Sha256Hex -FilePath $zipPath
             if ($actual.ToUpperInvariant() -ne $expected.ToUpperInvariant()) {
                 throw ('SHA256 不一致：期望 ' + $expected + '，实际 ' + $actual)
             }
