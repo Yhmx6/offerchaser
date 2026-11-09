@@ -24,11 +24,13 @@ http://127.0.0.1:6866
 
 ---
 
-## 第 2 步：解锁管理台
+## 第 2 步：进入管理台
 
-管理台会要求本机令牌。
+管理台默认免登录，打开后直接进入。
 
-1. 打开程序目录里的 `data\local-session-token`；
+如果以后在配置里把认证打开了（`offerchaser.security.auth-enabled=true`），才需要用安装目录里的令牌登录：
+
+1. 打开安装目录里的 `data\local-session-token`；
 2. 用记事本复制里面的一整行令牌；
 3. 粘贴到登录门；
 4. 点击 **登录管理台**。
@@ -172,8 +174,8 @@ browser-data\
 
 | 现象 | 处理 |
 |---|---|
-| 管理台打不开 | 确认托盘在运行；重启程序；看 `target\logs\offerchaser.log` |
-| 登录门过不去 | 重新复制 `data\local-session-token`；等一分钟再试 |
+| 管理台打不开（白屏 / 一直转圈） | 先等 30 秒；确认托盘在运行；手动访问 <http://127.0.0.1:6866/boss>；重启程序；看 `target\logs\offerchaser.log` |
+| 管理台要求登录 | 默认已关闭登录（`offerchaser.security.auth-enabled=false`）。只有自己把认证打开后才需要令牌：复制 `data\local-session-token` 里的一整行粘贴登录 |
 | 开始按钮不可用 | 可能运行中/停止中/worker 未退出；先停止或强制复位 |
 | 提示 BOSS 未登录 | 回 Chrome 窗口重新扫码 |
 | AI 全部报错 | 检查模型服务地址、模型名、API Key 和网络 |

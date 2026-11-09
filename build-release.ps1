@@ -1,5 +1,8 @@
-﻿<#
-  build-release.ps1 -- 生成一个可以安全分发的发布包
+<#
+  build-release.ps1 -- [旧脚本] 组装开发版发布目录
+
+  注意：GitHub Release 用的一键包请用 packaging/build-oneclick.ps1 生成。这个脚本
+  不处理发布版启动脚本、管理台静态资源和安装说明书，打出来的目录不能直接当一键包发。
 
   它做三件事：
     1. 只按白名单拷文件，db/ data/ browser-data/ target/ 一律不进包；

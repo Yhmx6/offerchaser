@@ -37,6 +37,17 @@
 
 ---
 
+## 一键安装（Windows x64）
+
+不用装 Java/Node，下载即用。
+
+- **方式一（推荐）**：到 [Releases](https://github.com/Yhmx6/offerchaser/releases/latest) 下载 `OfferChaser-2.0.1-win64.zip` → 解压 → 双击 `一键安装.bat`。
+- **方式二**：仓库根目录双击 `一键部署.bat`，自动下载、校验、安装并启动。
+
+详细步骤见 [安装说明书.md](安装说明书.md)。
+
+---
+
 ## 交流群
 
 使用问题、投递策略、规则调优，欢迎进群一起聊：
@@ -292,15 +303,16 @@ npm run lint
 
 别把整个目录压缩发出去。`db/`、`data/`、`browser-data/`、`target/` 里是你的 API Key、简历、BOSS 登录态和运行日志。
 
-用脚本打：
+发布包（GitHub Release 用的 `OfferChaser-2.0.1-win64.zip`）用 `packaging/build-oneclick.ps1` 打。它需要一个「能直接运行」的完整目录作为输入（带 `runtime/`、`node/`、`patchright-driver/`、`OfferChaser.jar` 等），只在白名单范围内拷贝，`db/`、`data/`、`browser-data/`、`target/` 不会进包：
 
 ```powershell
-.\build-release.ps1              # 生成 release\OfferChaser-2.0.1\
-.\build-release.ps1 -Zip         # 额外压成 zip
-.\build-release.ps1 -CheckOnly   # 只做前置检查，不生成任何东西
+.\packaging\build-oneclick.ps1 -RuntimeDir "D:\OfferChaser" -Version 2.0.1
+.\packaging\build-oneclick.ps1 -RuntimeDir "D:\OfferChaser" -Version 2.0.1 -SkipZip
 ```
 
-脚本按白名单拷文件，把 `LICENSE` 和 `NOTICE` 注入 jar 的 `META-INF`，然后在打包后自检：一旦发现敏感目录或缺少许可证就直接失败。
+脚本会做这些事：精简 jar（移除运行时用不到的 driver-bundle，保留 Spring Boot 需要的 STORED 压缩与 `classpath.idx`）、把 `LICENSE`/`NOTICE` 注入 jar 的 `META-INF`、补入 `install.ps1`/`一键安装.bat`/`安装说明书.md`/文档、生成 `release.json` 和包内 `SHA256SUMS.txt`，最后压出 zip 并在 `release/` 生成这个 zip 的 `SHA256SUMS.txt`（Release 资产）。打包后会自检：一旦发现敏感目录、缺少许可证或嵌套 jar 压缩方式不对就直接失败。
+
+旧的 `build-release.ps1` 只用于组装开发版发布目录，不生成一键包（它不处理发布版启动脚本、管理台静态资源和安装说明书），别再用它出 Release 资产。
 
 > PowerShell 默认禁止运行脚本。如果报 `UnauthorizedAccess`，先用 `Set-ExecutionPolicy -Scope Process Bypass` 放行当前窗口。
 
