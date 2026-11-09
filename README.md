@@ -142,6 +142,28 @@
 
 ---
 
+## 页面预览
+
+> 截图使用 E2E 模拟数据，不包含真实账号、API Key、简历、岗位或投递记录。主要页面使用象牙松（绿色）配色。
+
+### 首页三套配色
+
+| 瓷白靛 | 石墨铜 | 象牙松（绿色） |
+|:---:|:---:|:---:|
+| <img src="doc/screenshots/home-porcelain.png" width="360" alt="瓷白靛"> | <img src="doc/screenshots/home-graphite.png" width="360" alt="石墨铜"> | <img src="doc/screenshots/home-ivory.png" width="360" alt="象牙松"> |
+
+### 五个主空间（象牙松）
+
+| 今日 | 待办 | 记录 |
+|:---:|:---:|:---:|
+| <img src="doc/screenshots/today.png" width="360" alt="今日"> | <img src="doc/screenshots/inbox.png" width="360" alt="待办"> | <img src="doc/screenshots/ledger.png" width="360" alt="记录"> |
+
+| 配置 | 洞察 | |
+|:---:|:---:|:---:|
+| <img src="doc/screenshots/setup.png" width="360" alt="配置"> | <img src="doc/screenshots/insights.png" width="360" alt="洞察"> | |
+
+更多子页面截图见 [doc/screenshots/README.md](doc/screenshots/README.md)。
+
 ## 技术栈
 
 | 层 | 技术 |

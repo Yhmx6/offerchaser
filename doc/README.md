@@ -56,6 +56,7 @@
 | [14-open-source-compliance.md](14-open-source-compliance.md) | 上游归属、逐文件清单、许可证判定依据与贡献划分措辞 | 维护者、法务、对外说明 |
 | [guides/README.md](guides/README.md) | 从配置到投递的 4 步图解使用说明 | 第一次使用者 |
 | [../DISCLAIMER.md](../DISCLAIMER.md) | 法律、平台规则、隐私与非商业许可边界 | 使用者、分发者 |
+| [screenshots/README.md](screenshots/README.md) | 管理台页面截图（模拟数据，含三套配色） | 使用者、设计 |
 
 ## 文档约定
 
