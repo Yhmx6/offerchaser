@@ -160,11 +160,11 @@
 ### 环境
 
 - Windows 10/11 **x64**；
-- 桌面包自带 JDK 21 运行时（`runtime/`）；从源码开发时用 `.jdk/jdk-21.0.13+9`；
-- 桌面包自带 `node/`，日常运行直接用已构建好的 `src/main/resources/dist`；只有改前端才需要 Node.js；
-- 本机装一个 Google Chrome。
+- **GitHub 仓库是源码，不是一键发布包**：不含 `runtime/`、`.jdk/`、`node/`、`patchright-driver/`、前端 `dist/` 和数据库；
+- 跑源码需要 JDK 21、Node.js 20+（含 corepack/pnpm）和 Google Chrome；
+- 桌面包才自带 JDK/Node/Patchright，拿到发布包的人不需要另装 Java/Node。
 
-### 启动
+### 桌面包启动（如果你拿到的是发布包）
 
 双击：
 
@@ -182,24 +182,33 @@
 - `target/logs/launcher.err.log`
 - `target/logs/offerchaser.log`
 
-### 首次安装 / 换一台电脑
+### 从 GitHub 源码启动
 
-**JDK 21、Node、Patchright 驱动都在包里**，Java 和 Node 都不用另装。
+**不要直接双击 `OfferChaser.vbs`**：源码仓库没有 JDK、Node、Patchright 和预构建前端。直接双击通常会在启动阶段报错。
 
-首次启动会自动：
+先安装：
 
-- 建好 `db/`、`data/`、`target/logs/`、`browser-data/`；
-- `db/offerchaser.db` 不存在时，从 `db/offerchaser.db.template` 复制一份干净的数据库；
-- 建表、跑迁移，然后起管理台。
+- JDK 21；
+- Node.js 20+（带 corepack；`gradlew bootRun` 会自动构建前端）；
+- Google Chrome。
 
-除此之外还需要：
+然后执行：
 
-- Windows 10/11 **x64**；
-- 本机装 **Google Chrome**；
-- `9527` 和 `6866` 两个端口空着；
-- 能连上 BOSS 直聘，也能连上你的 AI 接口。
+```powershell
+git clone https://github.com/Yhmx6/offerchaser.git
+cd offerchaser
+powershell -ExecutionPolicy Bypass -File .\start-local.ps1
+```
 
-`db/`、`data/`、`browser-data/` 里是你的账号、投递记录和 BOSS 登录态。换电脑时用干净的发布包，这三个目录别直接拷过去；到了新机器上重新扫码登录 BOSS，重新填 AI 配置。
+`start-local.ps1` 会：
+
+- 检查 JDK；
+- 首次运行时把仓库里干净的 `db/offerchaser.db.template` 复制成 `db/offerchaser.db`；
+- 运行 `gradlew bootRun`，首次会下载依赖并构建前端。
+
+打开 <http://127.0.0.1:6866/boss>。源码方式首次启动会比桌面包慢。
+
+> 如果只是浏览源码/文档，直接下载不会报错；只有想运行才需要上面的环境。
 
 ### 首次配置
 
@@ -234,7 +243,7 @@ npm run lint
 
 ### 当前门禁基线
 
-- 全量测试：**1114 tests / 0 failures / 0 errors / 54 skipped / 118 classes**
+- 全量测试：**1118 tests / 0 failures / 0 errors / 54 skipped / 119 classes**
 - UI E2E：**19/19**
 - `next build` 通过
 - lint：0 errors / 0 warnings
@@ -285,6 +294,7 @@ OfferChaser/
 ## 安全与隐私
 
 - 服务只监听 `127.0.0.1`。
+- 后端会校验 HTTP Host，只允许 `127.0.0.1`、`localhost`、`::1`；用局域网 IP 或自定义域名访问会被 403，这是防 DNS rebinding 的边界。
 - 默认免登录是为了本机用着方便。`6866` 和 `9527` 都只在回环上，做端口映射就等于把它挂到公网了。
 - 想恢复登录：把 `offerchaser.security.auth-enabled` 设成 `true`。
 - `.env`、`data/`、`db/`、`browser-data/` 和日志里有敏感信息，提交前记得排除。

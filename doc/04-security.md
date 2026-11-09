@@ -11,6 +11,7 @@
 - 后端 `server.address=127.0.0.1`，只监听回环；静态服务 `offerchaser.static-server.address=127.0.0.1`。
 - CORS 只允许 `offerchaser.admin.cors-allowed-origins` 中的白名单（默认 9527/6866 的 localhost/127.0.0.1）；
   不支持 `*`。
+- Host 白名单 `LocalHostFilter`：只接受 `127.0.0.1`、`localhost`、`::1`，拒绝 DNS rebinding 和局域网 Host。
 - 平台门 `PlatformGateFilter`：未启用平台（当前仅 `boss`）的 API 前缀直接 403，避免误调用。
 - 管理与调试接口默认只在本机可访问；不要修改绑定地址为 `0.0.0.0`。
 

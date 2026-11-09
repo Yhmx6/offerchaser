@@ -650,7 +650,7 @@ HR 回复 / 面试
 
 ### 13.1 当前工程验收
 
-- 全量测试：**1114 tests / 0 failures / 0 errors / 54 skipped**
+- 全量测试：**1118 tests / 0 failures / 0 errors / 54 skipped**
 - UI E2E：**19/19**
 - `next build` 通过
 - lint：0 errors / 0 warnings

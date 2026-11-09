@@ -13,7 +13,7 @@
 | 管理台 | Next.js 16 静态导出 · React 19 · Tailwind · shadcn/ui |
 | 服务端口 | 后端 API `127.0.0.1:9527` · 管理台静态 `127.0.0.1:6866` |
 | 数据库 | `db/offerchaser.db` · `PRAGMA user_version=13` · **25 张表** |
-| 测试 | **1114 tests / 0 failures / 0 errors / 54 skipped / 118 类** |
+| 测试 | **1118 tests / 0 failures / 0 errors / 54 skipped / 119 类** |
 | 浏览器/DOM 夹具 | **79/79**（见 [05-testing](05-testing.md) 的口径拆分） |
 | 管理台 UI E2E | **19/19** |
 | 前端页面 | **5 个空间 / 20 个路由**（含旧路由重定向；静态导出 22 个 HTML + 登录门） |
