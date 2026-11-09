@@ -1,0 +1,451 @@
+/* ==========================================================================
+   OfferChaser UI 增量包 V2 · 视觉与配色
+   目标：去掉“灰白平面”的扁平感，但不堆颜色。每套主题只有一个主色；层次来自同色相的明暗、
+   内高光、阴影和柔光；除状态（成功 / 待核对 / 失败）外，不再有第二个装饰色。
+   不改任何 DOM 结构、API、安全语义；全部规则收在 `.oc-v2` 之下，
+   去掉 <html> 上的 `oc-v2` 类即可整体回退。
+
+   用法
+   1. app/layout.tsx：在 increment-v1.css 之后 import './increment-v2-visual.css'
+   2. <html className="oc-v2 ..."> 加上 oc-v2
+   3. 按 PATCHES.md 给对应元素加 oc-* 类（只加 className，不改逻辑）
+
+   主题选择器：下面每套主题都同时匹配 “html 上有 data-theme” 和 “后代节点上有 data-theme”，
+   因为交接文件没写 ThemeProvider 把 data-theme 放在哪一层。如果你们用的是 class（例如 .theme-ivory），
+   只需要改 3 处选择器头部。
+
+   令牌分两层
+   · 基础层（--bg --surface --v3-accent …）：覆盖现有的十六进制令牌，让全站整体换色。
+     注意：shadcn 的 HSL 令牌（--accent --muted --ok --warn --bad）不在这里改，
+     见文件末尾“可选：HSL 对齐块”。
+   · 新增层（--oc-*）：多色辅助色、数据色板、渐变、阴影，全部是新名字，不会撞现有变量。
+   ========================================================================== */
+
+/* ---------- 1. 主题令牌 ---------- */
+
+/* A · 瓷白靛 porcelain（浅色，默认）—— 靛蓝为主，青、珊瑚、紫、琥珀为辅 */
+:is(.oc-v2[data-theme="porcelain"], .oc-v2 [data-theme="porcelain"]) {
+  color-scheme: light;
+  /* 基础层 */
+  --bg: #eef1f8;
+  --surface: #ffffff;
+  --surface2: #f6f7fc;
+  --v3-line: #e1e5f0;
+  --line-strong: #c9cfe2;
+  --text: #12152b;
+  --v3-muted: #5b6180;
+  --v3-accent: #4a45d6;
+  --accent-ink: #ffffff;
+  --accent-soft: #ecebfc;
+  --v3-ok: #15885f;   --ok-soft: #e3f4ec;
+  --v3-warn: #a8650a; --warn-soft: #fbf0dc;
+  --v3-bad: #c23535;  --bad-soft: #fbe6e4;
+  --bar-bg: #ffffff; --bar-text: #12152b; --bar-muted: #5b6180; --bar-line: #e1e5f0;
+  --bar-hover: #f1f3fa; --bar-active: #ffffff;
+  --shadow: 0 10px 30px -12px rgba(30, 34, 90, .22);
+  --scrim: rgba(18, 21, 43, .45);
+  /* 新增层：色调（mark 色）—— KPI、胶囊、阶段条共用 */
+  --oc-t-primary: #4a45d6;
+  --oc-t-ok: #17956b;
+  --oc-t-warn: #d9962b;
+  --oc-t-bad: #e4573f;
+  /* 多序列色板：只在同一张图叠 ≥2 条线/柱时才用；默认全站只用 --oc-s1。已用 validate_palette.js 校验 */
+  --oc-s1: #4a45d6; --oc-s2: #0e8fa0; --oc-s3: #e4573f;
+  --oc-s4: #17956b; --oc-s5: #d9962b; --oc-s6: #c4488a;
+  /* 渐变、光晕、氛围 */
+  --oc-grad-primary: linear-gradient(135deg, #6a63e6 0%, #4a45d6 50%, #3b36bd 100%);
+  --oc-grad-line: linear-gradient(90deg, #4a45d6, transparent 78%);
+  --oc-glow: rgba(74, 69, 214, .38);
+  --oc-tab-on: color-mix(in srgb, #4a45d6 78%, #12152b);
+  --oc-hi: rgba(255, 255, 255, .9);
+  --oc-sh: 24, 28, 80;
+  --oc-atmos:
+    radial-gradient(1000px 560px at 0% -10%, rgba(106, 99, 230, .11), transparent 62%),
+    radial-gradient(900px 600px at 100% 0%, rgba(106, 99, 230, .05), transparent 60%);
+}
+
+/* B · 石墨铜 graphite（深色）—— 铜橙为主，天蓝、紫、玫红、暖黄为辅 */
+:is(.oc-v2[data-theme="graphite"], .oc-v2 [data-theme="graphite"]) {
+  color-scheme: dark;
+  --bg: #0b0c10;
+  --surface: #15171d;
+  --surface2: #1c1f27;
+  --v3-line: #2a2e39;
+  --line-strong: #3a3f4d;
+  --text: #eceae6;
+  --v3-muted: #9a9dab;
+  --v3-accent: #e3a06f;
+  --accent-ink: #1b1208;
+  --accent-soft: rgba(227, 160, 111, .14);
+  --v3-ok: #6fcf9e;   --ok-soft: rgba(111, 207, 158, .13);
+  --v3-warn: #e5c567; --warn-soft: rgba(229, 197, 103, .13);
+  --v3-bad: #ee8a7e;  --bad-soft: rgba(238, 138, 126, .14);
+  --bar-bg: #101218; --bar-text: #eceae6; --bar-muted: #9a9dab; --bar-line: #262a34;
+  --bar-hover: #1a1d25; --bar-active: #262a34;
+  --shadow: 0 14px 36px -14px rgba(0, 0, 0, .7);
+  --scrim: rgba(0, 0, 0, .62);
+  --oc-t-primary: #e3a06f;
+  --oc-t-ok: #6fcf9e;
+  --oc-t-warn: #e5c567;
+  --oc-t-bad: #ee8a7e;
+  --oc-s1: #e3a06f; --oc-s2: #6fb7d9; --oc-s3: #ee8a7e;
+  --oc-s4: #e5c567; --oc-s5: #a99bf0; --oc-s6: #6fcf9e;
+  --oc-grad-primary: linear-gradient(135deg, #efb07c 0%, #e3a06f 50%, #d28a58 100%);
+  --oc-grad-line: linear-gradient(90deg, #e3a06f, transparent 78%);
+  --oc-glow: rgba(227, 160, 111, .4);
+  --oc-tab-on: #f3c9a3;
+  --oc-hi: rgba(255, 255, 255, .06);
+  --oc-sh: 0, 0, 0;
+  --oc-atmos:
+    radial-gradient(1000px 560px at 6% -12%, rgba(227, 160, 111, .12), transparent 62%),
+    radial-gradient(900px 600px at 100% 0%, rgba(227, 160, 111, .05), transparent 60%);
+}
+
+/* C · 象牙松 ivory（暖浅色 + 深绿顶栏）—— 松绿为主，金、湖蓝、赭红、梅紫为辅 */
+:is(.oc-v2[data-theme="ivory"], .oc-v2 [data-theme="ivory"]) {
+  color-scheme: light;
+  --bg: #f2eee2;
+  --surface: #fffdf8;
+  --surface2: #f8f4ea;
+  --v3-line: #e3ddcb;
+  --line-strong: #cfc7ae;
+  --text: #18221d;
+  --v3-muted: #5e6a62;
+  --v3-accent: #1f6b4f;
+  --accent-ink: #ffffff;
+  --accent-soft: #e4f0e9;
+  --v3-ok: #2f7d3a;   --ok-soft: #e6f1e1;
+  --v3-warn: #8f5a0a; --warn-soft: #f8ebcf;
+  --v3-bad: #a63a2b;  --bad-soft: #f8e3dd;
+  --bar-bg: #11251d; --bar-text: #f2eee2; --bar-muted: #a9b8ad; --bar-line: #1d3a2e;
+  --bar-hover: #183428; --bar-active: #234a39;
+  --shadow: 0 10px 30px -12px rgba(40, 52, 30, .26);
+  --scrim: rgba(17, 37, 29, .5);
+  --oc-t-primary: #1f6b4f;
+  --oc-t-ok: #4c9a3f;
+  --oc-t-warn: #b8862b;
+  --oc-t-bad: #c0563b;
+  --oc-s1: #1f6b4f; --oc-s2: #3a9aa0; --oc-s3: #b8862b;
+  --oc-s4: #2f6f9f; --oc-s5: #c0563b; --oc-s6: #8a4b8f;
+  --oc-grad-primary: linear-gradient(135deg, #2a7f5f 0%, #1f6b4f 55%, #17583f 100%);
+  --oc-grad-line: linear-gradient(90deg, #1f6b4f, transparent 78%);
+  --oc-glow: rgba(31, 107, 79, .34);
+  --oc-tab-on: #ffffff;
+  --oc-hi: rgba(255, 255, 255, .85);
+  --oc-sh: 52, 44, 20;
+  --oc-atmos:
+    radial-gradient(1000px 560px at 2% -10%, rgba(31, 107, 79, .09), transparent 62%),
+    radial-gradient(900px 600px at 100% 0%, rgba(31, 107, 79, .04), transparent 60%);
+}
+
+/* ---------- 2. 氛围背景 + 通用层次 ---------- */
+.oc-v2 body {
+  background: var(--oc-atmos, none), var(--bg);
+  background-attachment: fixed, fixed;
+}
+
+/* 色调：各组件通过 data-tone 取 --t；ink 是同色加深/提亮后的文字色，保证可读 */
+.oc-v2 [data-tone="primary"],
+.oc-v2 [data-tone="sky"],
+.oc-v2 [data-tone="violet"] { --t: var(--oc-t-primary); }   /* sky / violet 已停用，别名到主色，防止旧写法冒出第二个颜色 */
+.oc-v2 [data-tone="ok"]      { --t: var(--oc-t-ok); }
+.oc-v2 [data-tone="warn"]    { --t: var(--oc-t-warn); }
+.oc-v2 [data-tone="bad"]     { --t: var(--oc-t-bad); }
+.oc-v2 [data-tone="muted"]   { --t: var(--v3-muted); }
+.oc-v2 [data-tone] { --t-ink: color-mix(in srgb, var(--t) 68%, var(--text)); --t-soft: color-mix(in srgb, var(--t) 12%, var(--surface)); }
+/* 琥珀/金色本身较亮，文字色多掺一点正文色，浅色主题下才能到 4.5:1 */
+.oc-v2 [data-tone="warn"] { --t-ink: color-mix(in srgb, var(--t) 52%, var(--text)); }
+
+/* 卡片：顶部内高光 + 两层阴影；悬停时轻微抬起 */
+.oc-v2 .oc-card {
+  background: var(--surface);
+  border: 1px solid var(--v3-line);
+  border-radius: 20px;
+  box-shadow:
+    inset 0 1px 0 var(--oc-hi),
+    0 1px 2px rgba(var(--oc-sh), .06),
+    0 12px 28px -16px rgba(var(--oc-sh), .22);
+  transition: transform .3s cubic-bezier(.2, .7, .2, 1), box-shadow .3s, border-color .3s;
+}
+.oc-v2 .oc-card:hover {
+  border-color: var(--line-strong);
+  box-shadow:
+    inset 0 1px 0 var(--oc-hi),
+    0 2px 4px rgba(var(--oc-sh), .06),
+    0 18px 36px -16px rgba(var(--oc-sh), .3);
+}
+
+/* 页面标题：眉标用主色，标题用微渐变 */
+.oc-v2 .oc-eyebrow { color: color-mix(in srgb, var(--oc-t-primary) 75%, var(--text)); letter-spacing: .12em; font-size: 11px; font-weight: 600; }
+.oc-v2 .oc-title {
+  background: linear-gradient(180deg, var(--text) 30%, color-mix(in srgb, var(--oc-t-primary) 55%, var(--text)));
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+
+/* ---------- 3. 顶栏 ---------- */
+.oc-v2 .oc-topbar { position: sticky; }
+.oc-v2 .oc-topbar::after {          /* 底边一条三色渐变细线，平时淡，运行时由 oc-beam 接管 */
+  content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 1px;
+  background: var(--oc-grad-line); opacity: .55; pointer-events: none;
+}
+.oc-v2 .oc-logo {
+  display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 10px; color: var(--accent-ink);
+  background: var(--oc-grad-primary);
+  box-shadow: 0 6px 16px -6px var(--oc-glow), inset 0 1px 0 rgba(255, 255, 255, .35);
+}
+.oc-v2 .oc-tabs-ink {
+  background: color-mix(in srgb, var(--oc-t-primary) 13%, var(--bar-active));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--oc-t-primary) 28%, transparent), 0 4px 12px -6px var(--oc-glow);
+}
+.oc-v2 .oc-tab[aria-current="page"] { color: var(--oc-tab-on, var(--bar-text)); font-weight: 600; }
+.oc-v2 .oc-badge { background: linear-gradient(135deg, var(--oc-t-warn), color-mix(in srgb, var(--oc-t-warn) 70%, var(--oc-t-bad))); color: #fff; box-shadow: 0 2px 8px -2px color-mix(in srgb, var(--oc-t-warn) 60%, transparent); }
+
+/* ---------- 4. 按钮 ---------- */
+.oc-v2 .oc-btn-primary {
+  position: relative; overflow: hidden; border: 0; color: var(--accent-ink);
+  background: var(--oc-grad-primary);
+  box-shadow: 0 8px 20px -8px var(--oc-glow), inset 0 1px 0 rgba(255, 255, 255, .28);
+  transition: transform .2s, box-shadow .25s, filter .25s;
+}
+.oc-v2 .oc-btn-primary:hover:not(:disabled) { transform: translateY(-1px); filter: saturate(1.1) brightness(1.05); box-shadow: 0 12px 26px -8px var(--oc-glow), inset 0 1px 0 rgba(255, 255, 255, .3); }
+.oc-v2 .oc-btn-primary:active:not(:disabled) { transform: scale(.97); }
+.oc-v2 .oc-btn-primary:disabled { filter: grayscale(.5) opacity(.55); box-shadow: none; }
+.oc-v2 .oc-btn-ghost { background: transparent; border: 1px solid color-mix(in srgb, var(--oc-t-primary) 35%, var(--v3-line)); color: color-mix(in srgb, var(--oc-t-primary) 72%, var(--text)); }
+.oc-v2 .oc-btn-ghost:hover { background: color-mix(in srgb, var(--oc-t-primary) 9%, transparent); }
+
+/* ---------- 5. 开始投递：主面板 ---------- */
+.oc-v2 .oc-hero {
+  position: relative; overflow: hidden; border-radius: 22px;
+  border: 1px solid color-mix(in srgb, var(--oc-t-primary) 34%, var(--v3-line));
+  background:
+    radial-gradient(520px 260px at 100% 0%, color-mix(in srgb, var(--oc-t-primary) 20%, transparent), transparent 70%),
+    var(--surface);
+  box-shadow: inset 0 1px 0 var(--oc-hi), 0 18px 40px -22px var(--oc-glow);
+}
+.oc-v2 .oc-hero::before {           /* 右上角点阵装饰 */
+  content: ''; position: absolute; right: -10px; top: -10px; width: 240px; height: 160px; pointer-events: none;
+  background-image: radial-gradient(color-mix(in srgb, var(--oc-t-primary) 40%, transparent) 1.2px, transparent 1.6px);
+  background-size: 14px 14px;
+  -webkit-mask-image: radial-gradient(closest-side at 100% 0%, #000, transparent);
+  mask-image: radial-gradient(closest-side at 100% 0%, #000, transparent);
+  opacity: .55;
+}
+.oc-v2 .oc-hero > * { position: relative; }
+
+/* ---------- 6. KPI 卡：每张卡一个色调 ---------- */
+.oc-v2 .oc-kpi { position: relative; overflow: hidden; }
+.oc-v2 .oc-kpi::before {            /* 顶部色带 */
+  content: ''; position: absolute; left: 20px; right: 20px; top: 0; height: 3px; border-radius: 0 0 3px 3px;
+  background: linear-gradient(90deg, var(--t), color-mix(in srgb, var(--t) 0%, transparent)); opacity: .9;
+}
+.oc-v2 .oc-kpi::after {             /* 右上角柔光 */
+  content: ''; position: absolute; right: -40px; top: -40px; width: 140px; height: 140px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, color-mix(in srgb, var(--t) 11%, transparent), transparent 68%);
+}
+.oc-v2 .oc-kpi__icon {
+  display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 10px;
+  color: var(--t-ink); background: var(--t-soft); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--t) 22%, transparent);
+}
+.oc-v2 .oc-kpi__value { font-variant-numeric: tabular-nums; color: var(--text); }
+.oc-v2 .oc-kpi__value[data-emph="true"] { color: var(--t-ink); }
+.oc-v2 .oc-kpi__hint { color: var(--v3-muted); }
+.oc-v2 .oc-kpi:hover .oc-kpi__hint { color: var(--t-ink); }
+
+/* ---------- 7. 状态胶囊：状态一眼分辨 ---------- */
+.oc-v2 .oc-chip {
+  display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px; border-radius: 999px;
+  font-size: 12px; font-weight: 500; white-space: nowrap;
+  color: var(--t-ink, var(--v3-muted)); background: var(--t-soft, var(--surface2));
+  border: 1px solid color-mix(in srgb, var(--t, var(--v3-muted)) 26%, transparent);
+}
+.oc-v2 .oc-chip::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--t, var(--v3-muted)); }
+.oc-v2 .oc-chip[data-nodot]::before { display: none; }
+
+/* ---------- 8. 今日管线：阶段按序渐变（采集→投递结果），每根柱子给 --i:0..8 ---------- */
+/* 阶段柱：同一色相，从“采集”满色逐级变浅（越往后越少），不是彩虹 */
+.oc-v2 .oc-stage-bar {
+  --c: color-mix(in srgb, var(--oc-t-primary) calc(100% - var(--i, 0) * 6%), var(--surface));
+  border-radius: 6px 6px 3px 3px;
+  background: linear-gradient(180deg, var(--c), color-mix(in srgb, var(--c) 55%, var(--surface)));
+  box-shadow: 0 6px 14px -8px var(--c);
+  transform-origin: bottom; animation: oc-grow .7s cubic-bezier(.2, .7, .2, 1) backwards; animation-delay: calc(var(--i, 0) * 55ms);
+}
+.oc-v2 .oc-stage-bar[data-final] { --c: var(--oc-t-primary); }
+@keyframes oc-grow { from { transform: scaleY(.04); opacity: 0; } }
+
+/* ---------- 9. 预算环 / 同心环 ----------
+   在元素上用 style 传背景：conic-gradient(var(--oc-t-primary) 0 a%, var(--oc-t-warn) 0 b%, …, var(--t-track) 0)
+   这里只负责镂空与外发光。 */
+.oc-v2 .oc-ring {
+  --t-track: color-mix(in srgb, var(--oc-t-primary) 10%, var(--surface2));
+  border-radius: 50%;
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 11px), #000 calc(100% - 10px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 11px), #000 calc(100% - 10px));
+}
+.oc-v2 .oc-ring-wrap { filter: drop-shadow(0 8px 14px color-mix(in srgb, var(--oc-t-primary) 22%, transparent)); }
+.oc-v2 .oc-legend-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--t); box-shadow: 0 0 0 3px color-mix(in srgb, var(--t) 18%, transparent); }
+
+/* ---------- 10. 列表行（待办中栏 / 分类栏） ---------- */
+.oc-v2 .oc-row { position: relative; border-radius: 14px; transition: background .25s, transform .25s; }
+.oc-v2 .oc-row:hover { background: color-mix(in srgb, var(--oc-t-primary) 5%, var(--surface2)); }
+.oc-v2 .oc-row[aria-selected="true"], .oc-v2 .oc-row[data-selected="true"] {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--oc-t-primary) 14%, var(--surface)), color-mix(in srgb, var(--oc-t-primary) 3%, var(--surface)));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--oc-t-primary) 22%, transparent);
+}
+.oc-v2 .oc-row[aria-selected="true"]::before, .oc-v2 .oc-row[data-selected="true"]::before {
+  content: ''; position: absolute; left: 0; top: 14%; bottom: 14%; width: 3px; border-radius: 0 3px 3px 0; background: var(--oc-grad-primary);
+}
+.oc-v2 .oc-count { min-width: 26px; text-align: center; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-variant-numeric: tabular-nums; color: var(--t-ink, var(--v3-muted)); background: var(--t-soft, var(--surface2)); }
+
+/* ---------- 11. 提示条（数据质量提示等） ---------- */
+.oc-v2 .oc-note { position: relative; border-radius: 16px; padding: 14px 18px 14px 20px; color: var(--t-ink); background: linear-gradient(90deg, var(--t-soft), color-mix(in srgb, var(--t) 3%, var(--surface))); border: 1px solid color-mix(in srgb, var(--t) 24%, transparent); }
+.oc-v2 .oc-note::before { content: ''; position: absolute; left: 0; top: 12px; bottom: 12px; width: 3px; border-radius: 0 3px 3px 0; background: var(--t); }
+
+/* ---------- 12. 洞察：指标总览格（分组表头着色） ---------- */
+.oc-v2 .oc-stat-group { border-top: 2px solid color-mix(in srgb, var(--oc-t-primary) 40%, var(--v3-line)); background: linear-gradient(180deg, color-mix(in srgb, var(--oc-t-primary) 5%, transparent), transparent 46px); }
+.oc-v2 .oc-stat-group__title { display: inline-flex; align-items: center; gap: 6px; color: var(--v3-muted); font-weight: 600; letter-spacing: .02em; }
+.oc-v2 .oc-stat-value { font-variant-numeric: tabular-nums; }
+.oc-v2 .oc-stat-value[data-tone] { color: var(--t-ink); }
+
+/* ---------- 13. 趋势图：色板 + 渐变面积 + 发光线 ---------- */
+.oc-v2 .oc-chart { --oc-chart-color: var(--oc-s1); }
+.oc-v2 .oc-chart-line { filter: drop-shadow(0 6px 8px color-mix(in srgb, var(--oc-chart-color) 38%, transparent)); }
+.oc-v2 .oc-chart-dot { border-color: var(--oc-chart-color); box-shadow: 0 0 0 3px color-mix(in srgb, var(--oc-chart-color) 20%, transparent); }
+.oc-v2 .oc-chart-tip { background: color-mix(in srgb, var(--text) 94%, var(--oc-chart-color)); border: 1px solid color-mix(in srgb, var(--oc-chart-color) 40%, transparent); }
+.oc-v2 .oc-chart-guide { background: linear-gradient(180deg, color-mix(in srgb, var(--oc-chart-color) 70%, transparent), transparent); }
+/* 趋势图固定用主色（--oc-s1）。仅当同一张图叠 ≥2 条序列时，才需要按 --oc-s2… 区分。 */
+
+/* 日期范围等分段按钮 */
+.oc-v2 .oc-seg-on { color: var(--accent-ink); background: var(--oc-grad-primary); box-shadow: 0 6px 14px -6px var(--oc-glow); border-color: transparent; }
+
+/* ---------- 14. 动效：轻量、可关闭 ---------- */
+.oc-v2 .oc-hero::after {            /* 主面板右上角一圈缓慢呼吸的光 */
+  content: ''; position: absolute; right: 8%; top: -60px; width: 220px; height: 220px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, color-mix(in srgb, var(--oc-t-primary) 22%, transparent), transparent 66%);
+  animation: oc-breathe 6s ease-in-out infinite;
+}
+@keyframes oc-breathe { 0%, 100% { opacity: .55; transform: scale(1); } 50% { opacity: 1; transform: scale(1.12); } }
+.oc-v2 .oc-kpi { animation: oc-rise .6s cubic-bezier(.2, .7, .2, 1) backwards; }
+.oc-v2 .oc-kpi:nth-child(2) { animation-delay: .06s; }
+.oc-v2 .oc-kpi:nth-child(3) { animation-delay: .12s; }
+.oc-v2 .oc-kpi:nth-child(4) { animation-delay: .18s; }
+.oc-v2 .oc-kpi:nth-child(5) { animation-delay: .24s; }
+.oc-v2 .oc-card:hover { transform: translateY(-2px); }
+
+@media (prefers-reduced-motion: reduce) {
+  .oc-v2 *, .oc-v2 *::before, .oc-v2 *::after { animation: none !important; transition: none !important; }
+  .oc-v2 .oc-card:hover { transform: none; }
+}
+
+/* 窄屏：KPI 柔光缩小，避免溢出 */
+@media (max-width: 640px) {
+  .oc-v2 .oc-kpi::after { width: 90px; height: 90px; right: -30px; top: -30px; }
+  .oc-v2 .oc-hero::before { opacity: .3; }
+}
+
+/* ---------- 15. 可选：HSL 对齐块 ----------
+   如果项目里的 shadcn 组件（Button/Badge 等）仍在用 hsl(var(--accent)) 这类 HSL 三元组，
+   它们不会跟着上面的十六进制令牌变色。把下面的块解除注释并放进 globals.css 对应主题里即可
+   （三元组由 V2 主色换算，格式 “H S% L%”）：
+
+   porcelain:  --accent: 242 64% 55%;  --ok: 159 73% 31%;  --warn: 35 89% 35%;  --bad: 0 57% 48%;
+   graphite:   --accent: 25 67% 66%;   --ok: 149 50% 62%;  --warn: 45 71% 65%;  --bad: 6 77% 71%;
+   ivory:      --accent: 158 55% 27%;  --ok: 128 45% 34%;  --warn: 36 87% 30%;  --bad: 7 59% 41%;
+
+   注意：数值由脚本从上面的十六进制换算，但没有在你们的 globals.css 里验证过。
+   ========================================================================== */
+
+/* ---------- 16. 鼠标跟随聚光（V1 动效在 V2 卡片上的可靠叠加） ---------- */
+.oc-v2 .oc-spot:hover {
+  background-image: radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%),
+    color-mix(in srgb, var(--oc-t-primary) 16%, transparent), transparent 70%);
+}
+.oc-v2 .oc-kpi::after {
+  right: auto;
+  top: auto;
+  left: var(--mx, 85%);
+  top: var(--my, 0%);
+  transform: translate(-50%, -50%);
+  transition: left .08s linear, top .08s linear;
+}
+.oc-v2 .oc-hero::after {
+  right: auto;
+  top: auto;
+  left: var(--mx, 82%);
+  top: var(--my, 0%);
+  transform: translate(-50%, -40%);
+  transition: left .08s linear, top .08s linear;
+}
+
+/* ---------- 17. 单一鼠标跟随光晕（修正双光晕与延迟） ---------- */
+.oc-v2 .oc-hero {
+  background: var(--surface);
+}
+.oc-v2 .oc-hero::after,
+.oc-v2 .oc-kpi::after {
+  display: none;
+}
+.oc-v2 .oc-spot {
+  background-repeat: no-repeat;
+}
+.oc-v2 .oc-spot:hover {
+  background-image: radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%),
+    color-mix(in srgb, var(--oc-t-primary) 15%, transparent), transparent 70%);
+  transition: none;
+}
+
+/* ---------- 18. 管线：统一柱色 + 当前阶段明确指针 ---------- */
+.oc-v2 .oc-stage-bar {
+  --c: var(--oc-t-primary);
+  background: var(--oc-t-primary);
+  box-shadow: 0 8px 16px -10px color-mix(in srgb, var(--oc-t-primary) 45%, transparent);
+}
+.oc-v2 .oc-stage-bar[data-final] {
+  --c: var(--oc-t-primary);
+  background: var(--oc-t-primary);
+}
+.oc-v2 .oc-stage-bar[data-current] {
+  outline: 3px solid color-mix(in srgb, var(--oc-t-primary) 38%, var(--surface));
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 5px color-mix(in srgb, var(--oc-t-primary) 50%, transparent);
+}
+.oc-v2 .oc-stage-current-mark {
+  position: absolute;
+  top: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--v3-accent);
+  font-size: 12px;
+  line-height: 1;
+  pointer-events: none;
+}
+
+/* 单柱保留纵向渐变；所有柱使用同一渐变，不再按阶段序号变浅 */
+.oc-v2 .oc-stage-bar,
+.oc-v2 .oc-stage-bar[data-final] {
+  --c: var(--oc-t-primary);
+  background: linear-gradient(180deg, var(--oc-t-primary) 0%, color-mix(in srgb, var(--oc-t-primary) 58%, var(--surface)) 100%);
+}
+
+/* ---------- 19. 全站卡片光韵：.oc-card 也跟随 --mx/--my ---------- */
+/* 用 ::after 光晕层，而不是 background-image：
+   结果卡等组件有内联 background，背景图会被内联样式覆盖。 */
+.oc-v2 .oc-card {
+  position: relative;
+  isolation: isolate;
+}
+.oc-v2 .oc-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .16s ease;
+  background: radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%),
+    color-mix(in srgb, var(--oc-t-primary) 15%, transparent), transparent 70%);
+}
+.oc-v2 .oc-card:hover::after {
+  opacity: 1;
+}

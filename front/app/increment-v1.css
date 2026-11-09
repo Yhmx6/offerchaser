@@ -1,0 +1,117 @@
+/* ==========================================================================
+   OfferChaser UI 增量包 V1 · 样式
+   依赖：设计方案 §5.1 的颜色令牌（--bg --surface --surface2 --line --line-strong
+   --text --muted --accent --accent-soft --ok --warn --bad --scrim --shadow，
+   以及顶栏令牌 --bar-bg --bar-text --bar-muted --bar-line --bar-hover --bar-active --b-accent）。
+   用法：在 app/layout.tsx 里 `import './increment-v1.css'`，放在 globals.css 之后。
+   所有动画都在文件末尾的 prefers-reduced-motion 块里统一降级。
+   ========================================================================== */
+
+/* ---------- 1. 无障碍 ---------- */
+.oc-sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.oc-skip{position:absolute;left:12px;top:-64px;z-index:200;padding:10px 16px;border-radius:10px;background:var(--text);color:var(--bg);font-size:14px;text-decoration:none;transition:top .2s}
+.oc-skip:focus{top:12px}
+:where(a,button,input,select,textarea,[tabindex]):focus-visible{outline:2px solid var(--v3-accent);outline-offset:2px}
+
+/* ---------- 2. 关键帧与动效类 ---------- */
+@keyframes oc-rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes oc-pop{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes oc-fade{from{opacity:0}to{opacity:1}}
+@keyframes oc-drop{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+@keyframes oc-swap{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}
+@keyframes oc-pulse{0%{box-shadow:0 0 0 0 currentColor}70%{box-shadow:0 0 0 9px transparent}100%{box-shadow:0 0 0 0 transparent}}
+@keyframes oc-sheen{from{background-position:-200% 0}to{background-position:200% 0}}
+@keyframes oc-beam{from{left:-30%}to{left:100%}}
+@keyframes oc-sk{from{background-position:200% 0}to{background-position:-200% 0}}
+/* 只写 from：结束值取元素自身样式，已处理行的半透明不会被动画覆盖 */
+@keyframes oc-stag{from{opacity:0;transform:translateY(10px)}}
+@keyframes oc-dot{from{opacity:0;transform:scale(.2)}to{opacity:1}}
+@keyframes oc-fadein{from{opacity:0}to{opacity:1}}
+@keyframes oc-check{to{stroke-dashoffset:0}}
+@keyframes oc-draw{from{stroke-dashoffset:2000}to{stroke-dashoffset:0}}
+
+.oc-rise{animation:oc-rise .6s cubic-bezier(.2,.7,.2,1) both}
+.oc-pop{animation:oc-pop .3s cubic-bezier(.2,.7,.2,1) both}
+.oc-scrim{animation:oc-fade .25s ease both}
+.oc-drop{animation:oc-drop .35s cubic-bezier(.2,.7,.2,1) both}
+.oc-swap{animation:oc-swap .38s cubic-bezier(.2,.7,.2,1) both}
+.oc-pulse{animation:oc-pulse 1.9s ease-out infinite}
+.oc-sheen{background-image:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent);background-size:200% 100%;animation:oc-sheen 2.1s linear infinite}
+.oc-stag{animation:oc-stag .5s cubic-bezier(.2,.7,.2,1) backwards}      /* 配合 style={{animationDelay: `${i*45}ms`}} */
+.oc-fadein{animation:oc-fadein .8s .4s both}
+.oc-check{stroke-dasharray:24;stroke-dashoffset:24;animation:oc-check .5s .15s ease forwards}
+/* 折线重绘：数据切换时在 draw-a / draw-b 之间交替 className 以重启动画 */
+.oc-draw-a,.oc-draw-b{stroke-dasharray:2000;animation:oc-draw 1s cubic-bezier(.3,.7,.2,1) both}
+
+/* ---------- 3. 骨架屏 ---------- */
+.oc-skel{background:linear-gradient(90deg,var(--surface2) 0%,var(--v3-line) 50%,var(--surface2) 100%);background-size:200% 100%;border-radius:10px;animation:oc-sk 1.4s ease-in-out infinite}
+
+/* ---------- 4. 视觉效果 ---------- */
+/* 顶栏玻璃 + 吸顶 */
+.oc-topbar{position:sticky;top:0;z-index:10;padding:12px 28px;color:var(--bar-text);border-bottom:1px solid var(--bar-line);
+  background:color-mix(in srgb,var(--bar-bg) 84%,transparent);-webkit-backdrop-filter:blur(14px) saturate(1.3);backdrop-filter:blur(14px) saturate(1.3)}
+/* 运行中：顶栏底边的流动光束 */
+.oc-beam{position:absolute;left:0;right:0;bottom:-1px;height:2px;overflow:hidden;pointer-events:none}
+.oc-beam::after{content:'';position:absolute;top:0;bottom:0;width:30%;background:linear-gradient(90deg,transparent,var(--b-accent),transparent);animation:oc-beam 1.8s cubic-bezier(.4,0,.2,1) infinite}
+/* 卡片：光标跟随高光（配合 useSpotlight） */
+.oc-spot:hover{background-image:radial-gradient(260px circle at var(--mx,50%) var(--my,0%),var(--accent-soft),transparent 72%)}
+/* 主按钮：悬停扫光（给主按钮加 oc-sweep） */
+.oc-sweep{position:relative;overflow:hidden}
+.oc-sweep::after{content:'';position:absolute;inset:0;background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.3) 50%,transparent 65%);transform:translateX(-120%);transition:transform .6s;pointer-events:none}
+.oc-sweep:hover:not(:disabled)::after{transform:translateX(120%)}
+/* 主题切换渐变：加在根容器与卡片上 */
+.oc-theme-fade{transition:background-color .4s,color .4s,border-color .4s}
+
+/* ---------- 5. 空间标签（SpaceTabs）：等分 + 滑块按百分比移动，任意宽度都对齐 ---------- */
+.oc-tabs{position:relative;display:grid;grid-template-columns:repeat(var(--oc-tabs-n,5),minmax(0,1fr));padding:4px;border-radius:14px;
+  background:var(--bar-hover);border:1px solid var(--bar-line);flex:1 1 380px;max-width:520px;min-width:0}
+.oc-tabs-ink{position:absolute;top:4px;bottom:4px;left:4px;width:calc((100% - 8px) / var(--oc-tabs-n,5));border-radius:10px;
+  background:var(--bar-active);box-shadow:0 1px 2px rgba(0,0,0,.12);transition:transform .42s cubic-bezier(.2,.8,.2,1)}
+.oc-tab{position:relative;z-index:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:36px;min-width:0;border-radius:10px;
+  color:var(--bar-muted);font-size:14px;font-weight:500;text-decoration:none;transition:color .3s}
+.oc-tab[aria-current="page"]{color:var(--bar-text)}
+.oc-badge{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:999px;background:var(--b-warn);color:var(--b-ink);font-size:12px;font-weight:500}
+
+/* ---------- 6. 对话框（DialogShell） ---------- */
+.oc-dialog-layer{position:fixed;inset:0;z-index:200;display:flex;align-items:flex-start;justify-content:center;padding:12vh 16px 16px;background:var(--scrim)}
+.oc-dialog{position:relative;width:min(var(--oc-dialog-w,480px),100%);max-height:76vh;overflow-y:auto;padding:28px;border-radius:20px;background:var(--surface);border:1px solid var(--line-strong);box-shadow:var(--shadow);outline:none}
+.oc-dialog[data-tone="danger"]{border-color:var(--v3-bad)}
+
+/* ---------- 7. 趋势图（TrendChart） ---------- */
+.oc-chart{position:relative;height:220px}
+.oc-chart-svg{position:absolute;inset:0;display:block;overflow:visible}
+.oc-chart-dot{position:absolute;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;background:var(--surface);border:2px solid var(--v3-accent);transition:transform .2s;animation:oc-dot .4s both;pointer-events:none}
+.oc-chart-guide{position:absolute;top:0;bottom:0;width:1px;background:var(--line-strong);pointer-events:none}
+.oc-chart-tip{position:absolute;z-index:2;padding:8px 12px;border-radius:10px;background:var(--text);color:var(--bg);font-size:12px;line-height:1.5;white-space:nowrap;pointer-events:none;box-shadow:var(--shadow)}
+.oc-chart-hit{position:absolute;top:0;bottom:0;background:transparent;border:0;padding:0;cursor:crosshair}
+.oc-chart-hit:focus-visible{outline:2px solid var(--v3-accent);outline-offset:-2px;border-radius:8px}
+.oc-chart-empty{display:flex;align-items:center;justify-content:center;height:220px;border:1px dashed var(--line-strong);border-radius:14px;color:var(--v3-muted);font-size:14px}
+.oc-chart-table{margin-top:16px;border:1px solid var(--v3-line);border-radius:14px;overflow-x:auto}
+.oc-chart-table [role="row"]{display:grid;grid-template-columns:90px repeat(var(--oc-cols,4),minmax(0,1fr));gap:8px;padding:10px 16px;font-size:13px}
+.oc-chart-table [role="row"]+[role="row"]{border-top:1px solid var(--v3-line)}
+.oc-chart-table [role="columnheader"]{font-size:12px;color:var(--v3-muted)}
+
+/* 当前设计系统旧/新令牌别名 */
+:root{--b-accent:var(--v3-accent);--b-warn:var(--v3-warn);--b-ink:var(--accent-ink)}
+
+/* ---------- 8. 响应式 ---------- */
+.oc-page{padding:28px 32px 96px}
+@media (max-width:900px){
+  .oc-page{padding:20px 16px 96px}
+  .oc-topbar{padding:10px 16px}
+  /* 左侧分类栏 / 模板栏在窄屏变成横向可滚动的一行 */
+  .oc-rail{flex:1 1 100%!important;max-width:none!important;flex-direction:row!important;overflow-x:auto}
+  .oc-rail>*{flex:0 0 auto;width:auto;min-width:200px;white-space:nowrap}
+}
+@media (max-width:640px){
+  .oc-hide-narrow{display:none}                       /* 跳转文字、已运行时间等次要信息 */
+  .oc-tabs{flex:1 1 100%;max-width:none;order:5}      /* 标签独占一行，位于顶栏最下方 */
+  .oc-runcap{flex:1 1 auto}
+}
+
+/* ---------- 9. 减少动效 ----------
+   不用 animation:none：像 oc-check 这样依赖终态的动画，缩到 .001ms 后仍能到达终态。 */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-delay:0s!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
+  .oc-beam::after{display:none}
+}

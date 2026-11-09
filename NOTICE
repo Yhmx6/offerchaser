@@ -1,0 +1,86 @@
+# NOTICE
+
+OfferChaser is a **derivative work / heavily modified fork** of the open-source project **get_jobs**.
+
+## Upstream project
+
+- Project: **get_jobs**（AI 找工作助手 / 多平台自动投简历）
+- Repository: <https://github.com/loks666/get_jobs>
+- Copyright: **Copyright (c) 2024-2026 GET JOBS**
+- Upstream license: **PolyForm Noncommercial License 1.0.0**
+- Upstream license file: <https://github.com/loks666/get_jobs/blob/main/LICENSE>
+
+## Required Notice
+
+```text
+Required Notice: Copyright (c) 2024-2026 GET JOBS
+(https://github.com/loks666/get_jobs)
+```
+
+## What OfferChaser changed
+
+OfferChaser is not an independent implementation. It started from `get_jobs` and was substantially rewritten:
+
+- retained and reworked the BOSS 直聘 delivery flow;
+- removed multi-platform support;
+- replaced package names and reworked the management console;
+- added local rules, strict AI JSON validation, fail-closed send confirmation, session identity checks, per-day quota reservations, audit ledgers, manual-review queues, templates, and insights;
+- removed inherited personal blacklist entries, personal greeting / AI prompt defaults, and other upstream author-specific configuration from the bundled defaults.
+
+## Authorship
+
+Most of what is in OfferChaser is new work by the maintainer: of 167 classes, 118 are
+additions. That layer covers the rule engine, strict-JSON AI matching and validation,
+session identity checks, per-day quota reservation, the delivery ledger, the
+manual-review queue, follow-up plans, profile templates, insights, job-post analysis,
+and local session security. Copyright in those additions belongs to the maintainer:
+Copyright (c) 2026 Yhmx6.
+
+The base came from upstream `get_jobs`: 49 of its 88 top-level classes are still here,
+with paths and class names unchanged and only the package renamed (`com.getjobs` →
+`com.offerchaser`). `Boss` has grown from a single 1858-line file into a class with 10
+inner types; `BossJobDataEntity` keeps upstream's 24 fields and adds 3. The 39 classes
+that are gone were all platform-specific (51job / 猎聘 / 智联), plus `Bot`, `Platform`,
+and the original entry point.
+
+上游给的是应用骨架和 BOSS 直聘的自动化链路；上面的业务能力层由维护者自己设计实现，
+著作权归维护者。这个划分不改变整件事的性质：OfferChaser 作为一个整体仍然是
+`get_jobs` 的衍生作品，按同一份 PolyForm Noncommercial License 1.0.0 分发，全文见
+[LICENSE](LICENSE)。
+
+## Copyright
+
+- Upstream `get_jobs`: **Copyright (c) 2024-2026 GET JOBS** — <https://github.com/loks666/get_jobs>
+- OfferChaser modifications and additions: **Copyright (c) 2026 Yhmx6** — <https://github.com/Yhmx6/OfferChaser>
+
+## Commercial licensing
+
+PolyForm Noncommercial License 1.0.0 permits noncommercial use only. Commercial use
+requires separate written licenses for **both** layers, and neither party can grant a
+license covering the other's code:
+
+- the upstream `get_jobs` portions — granted solely by GET JOBS (through the upstream repository);
+- the OfferChaser modifications and additions — granted by the OfferChaser maintainer
+  (<https://github.com/Yhmx6/OfferChaser>).
+
+## Upstream license history
+
+`get_jobs` was published under the MIT License before 2025-11-11. That grant is
+irrevocable for those earlier versions. OfferChaser is derived from a `get_jobs`
+version distributed under PolyForm Noncommercial 1.0.0; the MIT history belongs to
+the upstream project, not to OfferChaser.
+
+## Distributing a copy
+
+PolyForm Noncommercial 1.0.0 requires that anyone who receives any part of this
+software also receives the license terms (or their URL) and the `Required Notice:`
+lines. When redistributing OfferChaser — including a bare `OfferChaser.jar` — ship
+`LICENSE` and this `NOTICE` alongside it, or place them under `META-INF/` inside the
+jar.
+
+File-level provenance, the retained / removed class inventory, and the evidence behind
+each judgement are recorded in [doc/14-open-source-compliance.md](doc/14-open-source-compliance.md).
+
+## No endorsement
+
+This project is maintained independently. The upstream author did not author, review, sponsor, or endorse OfferChaser. Do not report OfferChaser issues to the upstream project without confirming they are upstream bugs.

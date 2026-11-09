@@ -1,0 +1,3 @@
+${AnsiColor.BRIGHT_GREEN}  OfferChaser${AnsiColor.DEFAULT}  ·  AI Job Application Assistant
+${AnsiColor.BRIGHT_YELLOW}  Spring Boot ${spring-boot.formatted-version}${AnsiColor.DEFAULT}
+${AnsiColor.BRIGHT_BLUE}  Admin UI: http://localhost:6866    API: http://localhost:9527${AnsiColor.DEFAULT}

@@ -1,0 +1,696 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* OfferChaser 管理台：令牌版本标记，独立于 Tailwind 层，便于升级时识别样式来源 */
+:root {
+  --offerchaser-ui-tokens: 2;
+}
+
+@layer base {
+  :root {
+    /* ========== 暖中性色阶（唯一色相 36°）========== */
+    --sand-50:  36 44% 97%;      /* #FAF8F3 卡面 */
+    --sand-100: 36 40% 93.5%;    /* #F5F0E8 页面画布 */
+    --sand-200: 35 36% 89.6%;    /* #EEE6DB 内嵌块 / 侧边栏 */
+    --sand-300: 36 28% 81%;      /* #DCD1C1 主描边 */
+    --clay-400: 36 20% 68%;      /* #BEB19D 禁用 / 弱图标 */
+    --clay-500: 37 14% 55%;      /* #9C907C 占位符 / 深色次级文字 */
+    --clay-600: 39 12% 39%;      /* #6E6657 浅色次级文字 */
+    --clay-700: 37 13% 30%;      /* #534E46 表格正文 */
+    --ink-800:  36 9% 22%;       /* #3D3933 浅色正文 */
+    --ink-900:  36 18% 12%;      /* #242019 浅色标题 / 深色卡面 */
+    --ink-950:  37 18% 8.6%;     /* #1A1712 深色画布 */
+
+    /* ========== 强调色（唯一强调色相 25°，陶土焦糖）========== */
+    --primary:           24 45% 42%;      /* #9B623B */
+    --primary-hover:     25 48% 36.5%;    /* #8A5530 */
+    --primary-active:    25 51% 30%;      /* #744626 */
+    --primary-subtle:    30 46% 90.6%;    /* #F2E7DC */
+    --primary-foreground: 35 60% 96%;     /* #FBF6EF 不用纯白 */
+    --primary-on-subtle: 25 51% 32%;      /* #7A4A28 */
+
+    /* ========== 语义状态色 · 浅色 ========== */
+    --success:        86 26% 29%;   /* #55663F 橄榄 */
+    --success-bg:     69 26% 89.4%; /* #E9EBDD */
+    --success-border: 78 14% 76%;   /* #C6CBBA */
+    --warning:        44 41% 31%;   /* #6F5E2E 芥末赭 */
+    --warning-bg:     44 45% 89%;   /* #EFE8D5 */
+    --warning-border: 44 47% 72%;   /* #D9C795 */
+    --danger:         9 53% 36%;    /* #8E3B2C 砖红 */
+    --danger-bg:      16 46% 91%;   /* #F2E2DC */
+    --danger-border:  16 40% 78%;   /* #DDBBAF */
+    --info:           202 13% 34%;  /* #4C5A62 石板灰 */
+    --info-bg:        150 4% 91%;   /* #E6E8E7 */
+    --info-border:    168 4% 77%;   /* #C2C7C6 */
+
+    /* ========== shadcn 语义别名 ========== */
+    /* background / foreground / card / card-foreground / border / border-subtle /
+       muted-foreground / primary / primary-foreground 以下方「暖纸色系 v2」为准，
+       这里不再重复声明（原先的值会被后面的覆盖，改了不生效，容易误导）。 */
+    --popover: var(--sand-50);
+    --popover-foreground: var(--ink-900);
+    --secondary: var(--sand-200);
+    --secondary-foreground: var(--ink-900);
+    --muted: var(--sand-200);
+    --accent: var(--sand-200);          /* shadcn 的 accent = hover 面，不是品牌色 */
+    --accent-foreground: var(--ink-900);
+    --destructive: var(--danger);
+    --destructive-foreground: var(--sand-50);
+    --input: var(--sand-300);
+    --ring: var(--primary);
+    --surface-inset: var(--sand-200);   /* 卡内二级容器 */
+    --sidebar: var(--sand-200);
+
+    /* ========== 形状 ========== */
+    --radius: 10px;          /* 卡片 / 大容器 */
+    --radius-control: 6px;   /* 按钮 / 输入 */
+    --radius-tag: 4px;       /* 徽章 */
+
+    /* ========== 材质色 + 纹理（signature 见设计系统 H.3 / H.5）========== */
+    --brass: 38 45% 45%;        /* #A6803F 浅色黄铜，仅用于 PageHeader 2px 竖线 */
+    --brass-dark: 40 50% 58%;   /* #C9A65E 深色黄铜 */
+    --noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+
+    /* ========== 阴影（暖色，绝不用纯黑）========== */
+    --shadow-e1: 0 1px 2px 0 rgba(74, 60, 42, 0.05), 0 1px 3px 0 rgba(74, 60, 42, 0.04);
+    --shadow-e2: 0 2px 4px -1px rgba(74, 60, 42, 0.06), 0 8px 16px -4px rgba(74, 60, 42, 0.08);
+    --shadow-e3: 0 4px 8px -2px rgba(58, 46, 32, 0.08), 0 16px 32px -8px rgba(58, 46, 32, 0.12);
+    --shadow-e1-dark: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    --shadow-overlay: 0 24px 48px -12px rgba(0, 0, 0, 0.6);
+    /* 焦点环：内圈留 2px 页面色缝，外圈 2px 实色 --ring。
+       旧版 3px / 28% 透明度在浅色纸面上对比度约 1.5:1，键盘用户几乎看不见。 */
+    --shadow-focus: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--ring));
+
+    /* ========== 动效 ========== */
+    --dur-1: 80ms;
+    --dur-2: 120ms;
+    --dur-3: 160ms;
+    --dur-4: 240ms;
+    --ease-spatial: cubic-bezier(0.2, 0, 0, 1);
+  }
+
+  /* 渐变层（撞色/拼接）：必须主题化，否则浅色下会变成深色块。
+     浅色版用"同色相、高明度"的柔和渐变，深色版用"低明度、高饱和"的厚渐变。 */
+  :root {
+
+    --stage-cell-bg: linear-gradient(180deg, hsl(36 32% 97.5%), hsl(36 24% 94.5%));
+    --stage-cur-bg: linear-gradient(180deg, hsl(28 60% 92%), hsl(30 40% 87%));
+    --strip-wash: linear-gradient(90deg, hsl(26 52% 95% / 0.9) 0%, hsl(36 30% 96% / 0) 46%, hsl(158 30% 92% / 0.8) 100%);
+
+    --cut-bar: linear-gradient(90deg, hsl(26 66% 46%) 0%, hsl(26 58% 42%) 22%, hsl(26 50% 40% / 0.45) 58%, transparent 100%);
+    --accent-line: linear-gradient(180deg, hsl(158 30% 34%), transparent);
+
+    --btn-primary-bg: linear-gradient(180deg, hsl(26 52% 46%), hsl(24 48% 38%));
+    --btn-danger-bg: linear-gradient(180deg, hsl(9 56% 45%), hsl(8 50% 37%));
+
+    /* ===== 暖纸色系 v2 ===== */
+    --background: 40 55% 96%;      /* #FAF6EE 暖纸 */
+    --card: 44 78% 99%;            /* #FFFDF8 暖白 */
+    --card-foreground: 24 25% 14%;
+    --foreground: 24 25% 14%;      /* #2B211A 焦糖墨 */
+    --sunken: 39 45% 91%;          /* #F3ECDF 米沙 */
+    --line: 39 45% 91%;
+    --border: 38 50% 85%;          /* #E8DECB 细线 */
+    --border-strong: 38 34% 74%;   /* #D3C4A9 */
+    --border-subtle: 38 50% 85%;
+    --text-2: 28 20% 29%;          /* #5A4A3C */
+    --text-3: 32 18% 38%;          /* #736350 */
+    --placeholder: 35 17% 59%;     /* #A89984 */
+    --muted-foreground: 32 18% 38%;
+    --brand: 17 53% 47%;           /* #B85C38 */
+    --brand-deep: 17 58% 39%;      /* #9E4A2A */
+    --brand-soft: 22 59% 89%;      /* #F4E1D4 选中行 */
+    --brand-tint: 20 59% 85%;      /* #EFD2C0 当前格（比 soft 深一档） */
+    --gold: 35 43% 52%;            /* #B98A4E */
+    --primary: 17 58% 39%;
+    --primary-foreground: 40 55% 96%;
+    --ok: 138 30% 33%; --ok-text: 138 36% 24%; --ok-bg: 120 28% 90%;
+    --warn: 35 71% 42%; --warn-text: 36 77% 31%; --warn-bg: 42 76% 88%;
+    --bad: 350 60% 44%; --bad-text: 350 66% 33%; --bad-bg: 350 55% 93%;
+    --idle: 31 14% 48%; --idle-bg: 37 41% 88%;
+    --idle-text: 31 16% 36%;       /* idle 徽标文字；--idle 只用于圆点/线（对 idle-bg 仅 3.2:1） */
+    --seq-1: 17 53% 47%; --seq-2: 35 43% 52%; --seq-3: 32 18% 38%;
+  }
+
+  .dark {
+    /* 面层级：整体明度上移 5～6%，并把画布/卡面/描边的落差从 3.4% 拉到 5.5%（A 案提亮） */
+    --background: 36 15% 14%;            /* #29231B 画布（原 8.6%） */
+    --foreground: var(--sand-100);       /* #F5F0E8 */
+    --card: 36 14% 19.5%;                /* #3A3226 卡面（原 12%） */
+    --card-foreground: var(--sand-100);
+    --popover: 36 14% 22.5%;             /* #423A2D 浮层压过卡面 */
+    --popover-foreground: var(--sand-100);
+    --secondary: 36 13% 23%;             /* #453C2F 次级面 */
+    --secondary-foreground: var(--sand-200);
+    --muted: 36 13% 23%;
+    --muted-foreground: 37 12% 66%;      /* #B4A995 次级文字，对卡面 ≈5.6:1 */
+    --accent: 36 13% 23%;
+    --accent-foreground: var(--sand-200);
+    --border: 36 14% 28%;                /* #51473A 描边明显可见 */
+    --border-subtle: 36 15% 24%;         /* #473E32 */
+    --input: 36 14% 26%;                 /* #4C4335 输入框可填感 */
+    --ring: 26 45% 56%;
+    --surface-inset: 36 13% 23%;         /* #453C2F */
+    --sidebar: 34 15% 11.5%;             /* #231E17 比画布深一档 */
+
+    /* 强调色：陶土提饱和，压得住提亮后的卡面 */
+    --primary:            26 45% 56%;    /* #C4885C */
+    --primary-hover:      27 48% 62%;    /* #D3986C */
+    --primary-active:     26 42% 49%;    /* #B0784E */
+    --primary-subtle:     28 26% 24%;    /* #4A3B2E */
+    --primary-foreground: 37 20% 9%;     /* #1C1812 */
+    --primary-on-subtle:  28 48% 72%;    /* #DFBB99 */
+
+    /* 语义状态色 · 深色（随卡面一起上移，保证在 19.5% 卡面上仍清晰） */
+    --success:        85 27% 66%;
+    --success-bg:     88 15% 23%;
+    --success-border: 86 18% 33%;
+    --warning:        43 60% 68%;
+    --warning-bg:     42 26% 23%;
+    --warning-border: 44 32% 34%;
+    --danger:         14 52% 70%;
+    --danger-bg:      11 27% 23%;
+    --danger-border:  14 36% 34%;
+    --info:           165 10% 67%;
+    --info-bg:        168 7% 23%;
+    --info-border:    167 8% 32%;
+    --destructive:            var(--danger);
+    --destructive-foreground: var(--ink-950);
+
+    /* 渐变层 · 深色 */
+
+    --stage-cell-bg: linear-gradient(180deg, hsl(36 14% 21.5%), hsl(36 14% 17%));
+    --stage-cur-bg: linear-gradient(180deg, hsl(28 40% 26%), hsl(30 30% 17%));
+    --strip-wash: linear-gradient(90deg, hsl(26 34% 19% / 0.55) 0%, hsl(36 14% 19.5% / 0) 46%, hsl(158 24% 18% / 0.5) 100%);
+
+    --cut-bar: linear-gradient(90deg, hsl(26 62% 66%) 0%, hsl(26 58% 58%) 22%, hsl(26 45% 45% / 0.45) 58%, transparent 100%);
+    --accent-line: linear-gradient(180deg, hsl(158 28% 30%), transparent);
+
+    --btn-primary-bg: linear-gradient(180deg, hsl(26 48% 60%), hsl(24 44% 46%));
+    --btn-danger-bg: linear-gradient(180deg, hsl(10 44% 37%), hsl(8 40% 27%));
+
+    /* ===== 暖纸 v2 令牌 · 深色覆盖 =====
+       v2 的令牌名（sunken / line / text-2 / brand-soft …）只在 :root 定义过浅色值，
+       深色下会回落成浅色 → 阶段带、选中行、徽章会变成浅底。这里逐个给出深色对应值。 */
+    --sunken: 36 13% 23%;
+    --line: 36 14% 24%;
+    --border-strong: 36 14% 34%;
+    --text-2: 37 12% 78%;
+    --text-3: 37 12% 66%;          /* 与 --muted-foreground（深色）同值；原 62% 在阶段带/选中行上仅 4.1~4.3:1 */
+    --placeholder: 37 10% 46%;
+    --brand: 26 45% 56%;
+    --brand-deep: 27 50% 64%;
+    --brand-soft: 28 26% 24%;
+    --brand-tint: 28 32% 31%;
+    --gold: 40 42% 60%;
+    --primary: 26 45% 56%;
+    --primary-foreground: 37 20% 9%;
+    --ok: 138 32% 52%; --ok-text: 138 38% 66%; --ok-bg: 138 20% 15%;
+    --warn: 43 60% 68%; --warn-text: 43 68% 74%; --warn-bg: 42 26% 23%;
+    --bad: 350 62% 62%; --bad-text: 350 70% 74%; --bad-bg: 350 30% 17%;
+    --idle: 37 10% 55%; --idle-bg: 36 12% 22%;
+    --idle-text: 37 11% 64%;
+    --seq-1: 26 45% 56%; --seq-2: 40 42% 60%; --seq-3: 37 12% 66%;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+
+  /* 画布：暖色渐层 + 噪点（设计系统 H.3）。渐变/噪点只在 html 层，
+     body / main / Card 保持自身不透明底色 → 噪点只出现在卡外留白，卡内文字永远清晰。 */
+  html {
+    -webkit-text-size-adjust: 100%;
+    background-color: hsl(var(--background));
+    background-image: radial-gradient(920px 520px at 6% -14%, rgba(232, 170, 120, 0.18), transparent 68%);
+    background-attachment: fixed;
+  }
+  html.dark {
+    /* 提亮画布后，渐晕必须同步收窄，否则会出现一块一块的"脏斑" */
+    background-image:
+      radial-gradient(120% 95% at 6% -20%, hsl(32 22% 18% / 0.55) 0%, transparent 52%),
+      radial-gradient(85% 65% at 96% 2%, hsl(26 18% 16% / 0.45) 0%, transparent 46%);
+  }
+  html::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-image: var(--noise);
+    background-repeat: repeat;
+    opacity: 0.02;
+    mix-blend-mode: multiply;
+  }
+  html.dark::after {
+    opacity: 0.028;
+    mix-blend-mode: overlay;
+  }
+
+  body {
+    @apply text-base text-foreground;
+    background-color: transparent;   /* 底色来自 html，勿在这里再铺一层 */
+    font-size: 13px;                 /* 运维台密度基准（设计系统 B.2） */
+    position: relative;
+    z-index: 1;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    /* 全局：对齐数字（lining）+ 等宽数字（tabular）。
+       只能写这一条：此前这里有两条 font-variant-numeric，后一条把 lining-nums 覆盖掉了，
+       结果阶段带里的 148 / 132 / 96 变成了旧式数字（3、4、9 掉到基线下）。 */
+    font-variant-numeric: lining-nums tabular-nums;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  main, aside { position: relative; z-index: 1; }
+
+  /* Tailwind 的 `tabular-nums` 工具类会整条重写 font-variant-numeric，把继承来的 lining-nums 丢掉。
+     这里让所有元素的「数字形态」变量默认为 lining-nums，工具类叠加后仍是 lining + tabular。
+     需要旧式数字的地方可显式用 `oldstyle-nums`。 */
+  :root *, :root *::before, :root *::after { --tw-numeric-figure: lining-nums; }
+
+  /* signature S2：渐隐分隔线。仅用于区块级分隔，表格行间仍用实线 border-hairline */
+  .divider-fade {
+    height: 1px;
+    background-image: linear-gradient(
+      90deg,
+      transparent 0%,
+      hsl(var(--border)) 14%,
+      hsl(var(--border)) 86%,
+      transparent 100%
+    );
+  }
+
+  /* 中文排版：避免标点悬挂错位、统一基线 */
+  h1, h2, h3, h4 { @apply text-balance; }
+}
+
+@layer utilities {
+  .dropdown-panel {
+    @apply fixed z-[99999] max-h-56 overflow-y-auto rounded-control border border-border shadow-e3;
+    background-color: hsl(var(--popover));
+    color: hsl(var(--popover-foreground));
+  }
+
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 1000px hsl(var(--card)) inset !important;
+    -webkit-text-fill-color: hsl(var(--foreground)) !important;
+    transition: background-color 5000s ease-in-out 0s;
+  }
+
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* 页面进入：全站唯一的入场动画，每页一次，包 ContentArea 内层一层 */
+  .animate-page-in { animation: pageIn var(--dur-4) var(--ease-spatial) both; }
+  @keyframes pageIn {
+    from { opacity: 0; transform: translateY(8px) }
+    to   { opacity: 1; transform: translateY(0) }
+  }
+
+  /* 抽屉：遮罩淡入 + 面板自右侧滑入（仅挂载时一次；reduced-motion 下被全局规则压成 0.01ms） */
+  .animate-fade-in { animation: fadeIn var(--dur-3) ease-out both; }
+  @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+  .animate-drawer-in { animation: drawerIn var(--dur-4) var(--ease-spatial) both; }
+  @keyframes drawerIn {
+    from { opacity: 0; transform: translateX(24px) }
+    to   { opacity: 1; transform: translateX(0) }
+  }
+
+  /* SSE 新增行一次性进入 */
+  .animate-row-in { animation: rowIn var(--dur-3) var(--ease-spatial) both; }
+  @keyframes rowIn {
+    from { opacity: 0; transform: translateY(4px) }
+    to   { opacity: 1; transform: translateY(0) }
+  }
+
+  /* 首页区块入场：比整页入场更细，错峰出现 */
+  .animate-dashboard-reveal { animation: dashboardReveal var(--dur-4) var(--ease-spatial) both; }
+  @keyframes dashboardReveal {
+    from { opacity: 0; transform: translateY(6px) }
+    to   { opacity: 1; transform: translateY(0) }
+  }
+
+  /* 阶段带：横条从左侧生长，表示比例，不做位移动画 */
+  .animate-stage-bar { transform-origin: left center; animation: stageBarIn 650ms var(--ease-spatial) both; }
+  @keyframes stageBarIn {
+    from { transform: scaleX(0) }
+    to   { transform: scaleX(1) }
+  }
+
+  /* 运行中状态点：低频呼吸环，不改变布局 */
+  .animate-live-dot { animation: liveDot 2.4s ease-in-out infinite; }
+  @keyframes liveDot {
+    0%, 100% { box-shadow: 0 0 0 0 hsl(var(--ok) / .35) }
+    50%      { box-shadow: 0 0 0 4px hsl(var(--ok) / 0) }
+  }
+
+  /* 折叠展开（配合 grid-rows 方案） */
+  .collapsible-open   { grid-template-rows: 1fr; transition: grid-template-rows var(--dur-3) var(--ease-spatial); }
+  .collapsible-closed { grid-template-rows: 0fr; transition: grid-template-rows var(--dur-3) var(--ease-spatial); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+
+/* ===================== V3 三套主题令牌（graphite / porcelain / ivory） =====================
+   新 UI 使用 --bg/--surface/--line/--text/--accent/--ok/--warn/--bad；
+   同时把旧 V2 令牌映射到同一套主题，确保既有只读组件在任意主题下可读。 */
+
+:root,
+[data-theme="porcelain"] {
+  --bg: #F3F4F6; --surface: #FFFFFF; --surface2: #F7F8FA;
+  --v3-line: #E4E6EB; --line-strong: #CDD1D9; --text: #14161C; --v3-muted: #5F6470;
+  --v3-accent: #4A45D6; --accent-ink: #FFFFFF; --accent-soft: rgba(74,69,214,.08); --accent-mid: rgba(74,69,214,.4);
+  --v3-ok: #16795A; --ok-soft: #E3F3EC; --v3-warn: #9A5B00; --warn-soft: #FBF0DB; --v3-bad: #B42D2D; --bad-soft: #FBE7E5; --bad-ink: #FFFFFF;
+  --bar-bg: #FFFFFF; --bar-text: #14161C; --bar-muted: #5F6470; --bar-line: #E4E6EB; --bar-hover: #F3F4F6; --bar-active: #FFFFFF;
+  --b-accent: #4A45D6; --b-ok: #16795A; --b-warn: #9A5B00; --b-bad: #B42D2D; --b-ink: #FFFFFF;
+  --shadow: 0 1px 2px rgba(20,22,28,.04),0 12px 32px rgba(20,22,28,.06); --scrim: rgba(20,22,28,.38);
+    --background: 220 14% 95.9%;
+    --foreground: 225 17% 9.4%;
+    --card: 0 0% 100.0%;
+    --card-foreground: 225 17% 9.4%;
+    --popover: 0 0% 100.0%;
+    --popover-foreground: 225 17% 9.4%;
+    --border: 223 15% 90.8%;
+    --border-subtle: 223 15% 90.8%;
+    --border-strong: 220 14% 82.7%;
+    --input: 220 14% 82.7%;
+    --ring: 242 64% 55.5%;
+    --primary: 242 64% 55.5%;
+    --primary-hover: 242 54% 51.0%;
+    --primary-active: 242 51% 46.7%;
+    --primary-subtle: 243 63% 93.7%;
+    --primary-foreground: 0 0% 100.0%;
+    --primary-on-subtle: 242 51% 47.3%;
+    --secondary: 220 23% 97.5%;
+    --secondary-foreground: 225 17% 9.4%;
+    --muted: 220 23% 97.5%;
+    --muted-foreground: 222 8% 40.6%;
+    --accent: 220 23% 97.5%;
+    --accent-foreground: 225 17% 9.4%;
+    --destructive: 0 60% 44.1%;
+    --destructive-foreground: 0 0% 100.0%;
+    --surface-inset: 220 23% 97.5%;
+    --sidebar: 0 0% 100.0%;
+    --sunken: 220 23% 97.5%;
+    --line: 223 15% 90.8%;
+    --text-2: 222 8% 40.6%;
+    --text-3: 222 8% 40.6%;
+    --placeholder: 225 6% 58.4%;
+    --brand: 242 64% 55.5%;
+    --brand-deep: 242 64% 55.5%;
+    --brand-soft: 243 62% 92.7%;
+    --brand-tint: 242 63% 88.4%;
+    --gold: 242 64% 55.5%;
+    --brass: 242 64% 55.5%;
+    --brass-dark: 242 64% 55.5%;
+    --ok: 161 69% 28.0%;
+    --ok-text: 161 69% 28.0%;
+    --ok-bg: 154 40% 92.2%;
+    --success: 161 69% 28.0%;
+    --success-bg: 154 40% 92.2%;
+    --success-border: 161 27% 74.7%;
+    --warn: 35 100% 30.2%;
+    --warn-text: 35 100% 30.2%;
+    --warn-bg: 39 80% 92.2%;
+    --warning: 35 100% 30.2%;
+    --warning-bg: 39 80% 92.2%;
+    --warning-border: 36 44% 75.7%;
+    --bad: 0 60% 44.1%;
+    --bad-text: 0 60% 44.1%;
+    --bad-bg: 5 73% 94.1%;
+    --danger: 0 60% 44.1%;
+    --danger-bg: 5 73% 94.1%;
+    --danger-border: 0 47% 80.6%;
+    --info: 222 8% 40.6%;
+    --info-bg: 220 23% 97.5%;
+    --info-border: 223 15% 90.8%;
+    --destructive: 0 60% 44.1%;
+    --idle: 222 8% 40.6%;
+    --idle-bg: 220 23% 97.5%;
+    --idle-text: 222 8% 40.6%;
+    --sand-50: 220 14% 95.9%;
+    --sand-100: 220 14% 95.9%;
+    --sand-200: 220 23% 97.5%;
+    --sand-300: 223 15% 90.8%;
+    --clay-400: 220 5% 67.3%;
+    --clay-500: 222 8% 40.6%;
+    --clay-600: 222 8% 40.6%;
+    --clay-700: 225 17% 9.4%;
+    --ink-800: 225 17% 9.4%;
+    --ink-900: 225 17% 9.4%;
+    --ink-950: 225 17% 9.4%;
+    --shadow-e1: 0 1px 2px rgba(20,22,28,.04),0 12px 32px rgba(20,22,28,.06);
+    --shadow-e2: 0 1px 2px rgba(20,22,28,.04),0 12px 32px rgba(20,22,28,.06);
+    --shadow-e3: 0 1px 2px rgba(20,22,28,.04),0 12px 32px rgba(20,22,28,.06);
+    --shadow-overlay: 0 1px 2px rgba(20,22,28,.04),0 12px 32px rgba(20,22,28,.06);
+    --shadow-e1-dark: 0 1px 2px rgba(20,22,28,.04),0 12px 32px rgba(20,22,28,.06);
+    --shadow-focus: 0 0 0 2px #F3F4F6,0 0 0 4px #4A45D6;
+    --radius: 16px;
+    --radius-control: 10px;
+    --radius-tag: 999px;
+    --dur-3: 160ms;
+    --dur-4: 260ms;
+    --ease-spatial: cubic-bezier(.2,.8,.2,1);
+}
+
+[data-theme="graphite"] {
+  --bg: #0E0F10; --surface: #16171A; --surface2: #1D1F23;
+  --v3-line: #2A2C31; --line-strong: #3A3D43; --text: #EDEBE7; --v3-muted: #A09D96;
+  --v3-accent: #D99467; --accent-ink: #1A1208; --accent-soft: rgba(217,148,103,.12); --accent-mid: rgba(217,148,103,.42);
+  --v3-ok: #7FC8A0; --ok-soft: rgba(127,200,160,.13); --v3-warn: #E5B567; --warn-soft: rgba(229,181,103,.13); --v3-bad: #EE8A7E; --bad-soft: rgba(238,138,126,.13); --bad-ink: #1F0B08;
+  --bar-bg: #0A0B0C; --bar-text: #EDEBE7; --bar-muted: #A09D96; --bar-line: rgba(255,255,255,.09); --bar-hover: rgba(255,255,255,.05); --bar-active: rgba(217,148,103,.16);
+  --b-accent: #D99467; --b-ok: #7FC8A0; --b-warn: #E5B567; --b-bad: #EE8A7E; --b-ink: #1A1208;
+  --shadow: 0 1px 0 rgba(255,255,255,.03) inset,0 18px 40px rgba(0,0,0,.35); --scrim: rgba(5,6,7,.64);
+    --background: 210 7% 5.9%;
+    --foreground: 40 14% 91.8%;
+    --card: 225 8% 9.4%;
+    --card-foreground: 40 14% 91.8%;
+    --popover: 225 8% 9.4%;
+    --popover-foreground: 40 14% 91.8%;
+    --border: 223 8% 17.8%;
+    --border-subtle: 223 8% 17.8%;
+    --border-strong: 220 7% 24.5%;
+    --input: 220 7% 24.5%;
+    --ring: 24 60% 62.7%;
+    --primary: 24 60% 62.7%;
+    --primary-hover: 24 60% 67.3%;
+    --primary-active: 24 46% 56.5%;
+    --primary-subtle: 15 14% 16.9%;
+    --primary-foreground: 33 53% 6.7%;
+    --primary-on-subtle: 24 60% 62.7%;
+    --secondary: 220 9% 12.5%;
+    --secondary-foreground: 40 14% 91.8%;
+    --muted: 220 9% 12.5%;
+    --muted-foreground: 42 5% 60.8%;
+    --accent: 220 9% 12.5%;
+    --accent-foreground: 40 14% 91.8%;
+    --destructive: 6 77% 71.4%;
+    --destructive-foreground: 8 59% 7.6%;
+    --surface-inset: 220 9% 12.5%;
+    --sidebar: 210 9% 4.3%;
+    --sunken: 220 9% 12.5%;
+    --line: 223 8% 17.8%;
+    --text-2: 40 14% 91.8%;
+    --text-3: 42 5% 60.8%;
+    --placeholder: 45 3% 52.9%;
+    --brand: 24 60% 62.7%;
+    --brand-deep: 24 60% 62.7%;
+    --brand-soft: 20 16% 17.8%;
+    --brand-tint: 22 23% 23.3%;
+    --gold: 24 60% 62.7%;
+    --brass: 24 60% 62.7%;
+    --brass-dark: 24 60% 62.7%;
+    --ok: 147 40% 64.1%;
+    --ok-text: 147 40% 64.1%;
+    --ok-bg: 164 13% 16.7%;
+    --success: 147 40% 64.1%;
+    --success-bg: 164 13% 16.7%;
+    --success-border: 152 18% 28.2%;
+    --warn: 37 71% 65.1%;
+    --warn-text: 37 71% 65.1%;
+    --warn-bg: 34 16% 17.3%;
+    --warning: 37 71% 65.1%;
+    --warning-bg: 34 16% 17.3%;
+    --warning-border: 37 28% 28.8%;
+    --bad: 6 77% 71.4%;
+    --bad-text: 6 77% 71.4%;
+    --bad-bg: 355 14% 17.8%;
+    --danger: 6 77% 71.4%;
+    --danger-bg: 355 14% 17.8%;
+    --danger-border: 3 23% 31.2%;
+    --info: 42 5% 60.8%;
+    --info-bg: 220 9% 12.5%;
+    --info-border: 223 8% 17.8%;
+    --destructive: 6 77% 71.4%;
+    --idle: 42 5% 60.8%;
+    --idle-bg: 220 9% 12.5%;
+    --idle-text: 42 5% 60.8%;
+    --sand-50: 210 7% 5.9%;
+    --sand-100: 210 7% 5.9%;
+    --sand-200: 220 9% 12.5%;
+    --sand-300: 223 8% 17.8%;
+    --clay-400: 45 2% 37.6%;
+    --clay-500: 42 5% 60.8%;
+    --clay-600: 42 5% 60.8%;
+    --clay-700: 40 14% 91.8%;
+    --ink-800: 40 14% 91.8%;
+    --ink-900: 40 14% 91.8%;
+    --ink-950: 40 14% 91.8%;
+    --shadow-e1: 0 1px 0 rgba(255,255,255,.03) inset,0 18px 40px rgba(0,0,0,.35);
+    --shadow-e2: 0 1px 0 rgba(255,255,255,.03) inset,0 18px 40px rgba(0,0,0,.35);
+    --shadow-e3: 0 1px 0 rgba(255,255,255,.03) inset,0 18px 40px rgba(0,0,0,.35);
+    --shadow-overlay: 0 1px 0 rgba(255,255,255,.03) inset,0 18px 40px rgba(0,0,0,.35);
+    --shadow-e1-dark: 0 1px 0 rgba(255,255,255,.03) inset,0 18px 40px rgba(0,0,0,.35);
+    --shadow-focus: 0 0 0 2px #0E0F10,0 0 0 4px #D99467;
+    --radius: 16px;
+    --radius-control: 10px;
+    --radius-tag: 999px;
+    --dur-3: 160ms;
+    --dur-4: 260ms;
+    --ease-spatial: cubic-bezier(.2,.8,.2,1);
+}
+
+[data-theme="ivory"] {
+  --bg: #F4F1E8; --surface: #FFFDF8; --surface2: #F9F6EC;
+  --v3-line: #E3DECE; --line-strong: #CFC8B2; --text: #1A231F; --v3-muted: #626C66;
+  --v3-accent: #1F6B4F; --accent-ink: #F4FBF7; --accent-soft: rgba(31,107,79,.1); --accent-mid: rgba(31,107,79,.4);
+  --v3-ok: #1F6B4F; --ok-soft: #E1EFE7; --v3-warn: #8F5A0A; --warn-soft: #F6EACB; --v3-bad: #A63A2B; --bad-soft: #F6E1DC; --bad-ink: #FFFFFF;
+  --bar-bg: #11251D; --bar-text: #EAF2ED; --bar-muted: #9DB2A7; --bar-line: rgba(255,255,255,.12); --bar-hover: rgba(255,255,255,.06); --bar-active: rgba(255,255,255,.13);
+  --b-accent: #8FD3B2; --b-ok: #8FD3B2; --b-warn: #F0C46E; --b-bad: #F29B8D; --b-ink: #0B1F16;
+  --shadow: 0 1px 2px rgba(26,35,31,.04),0 14px 34px rgba(26,35,31,.07); --scrim: rgba(17,37,29,.48);
+    --background: 45 35% 93.3%;
+    --foreground: 153 15% 12.0%;
+    --card: 43 100% 98.6%;
+    --card-foreground: 153 15% 12.0%;
+    --popover: 43 100% 98.6%;
+    --popover-foreground: 153 15% 12.0%;
+    --border: 46 27% 84.9%;
+    --border-subtle: 46 27% 84.9%;
+    --border-strong: 46 23% 75.5%;
+    --input: 46 23% 75.5%;
+    --ring: 158 55% 27.1%;
+    --primary: 158 55% 27.1%;
+    --primary-hover: 158 54% 24.9%;
+    --primary-active: 158 55% 22.7%;
+    --primary-subtle: 120 17% 89.6%;
+    --primary-foreground: 146 47% 97.1%;
+    --primary-on-subtle: 158 56% 22.9%;
+    --secondary: 46 52% 95.1%;
+    --secondary-foreground: 153 15% 12.0%;
+    --muted: 46 52% 95.1%;
+    --muted-foreground: 144 5% 40.4%;
+    --accent: 46 52% 95.1%;
+    --accent-foreground: 153 15% 12.0%;
+    --destructive: 7 59% 41.0%;
+    --destructive-foreground: 0 0% 100.0%;
+    --surface-inset: 46 52% 95.1%;
+    --sidebar: 156 37% 10.6%;
+    --sunken: 46 52% 95.1%;
+    --line: 46 27% 84.9%;
+    --text-2: 144 5% 40.4%;
+    --text-3: 144 5% 40.4%;
+    --placeholder: 129 3% 58.2%;
+    --brand: 158 55% 27.1%;
+    --brand-deep: 158 55% 27.1%;
+    --brand-soft: 131 18% 88.0%;
+    --brand-tint: 143 18% 80.8%;
+    --gold: 158 55% 27.1%;
+    --brass: 158 55% 27.1%;
+    --brass-dark: 158 55% 27.1%;
+    --ok: 158 55% 27.1%;
+    --ok-text: 158 55% 27.1%;
+    --ok-bg: 146 30% 91.0%;
+    --success: 158 55% 27.1%;
+    --success-bg: 146 30% 91.0%;
+    --success-border: 149 19% 74.3%;
+    --warn: 36 87% 30.0%;
+    --warn-text: 36 87% 30.0%;
+    --warn-bg: 43 70% 88.0%;
+    --warning: 36 87% 30.0%;
+    --warning-bg: 43 70% 88.0%;
+    --warning-border: 36 40% 74.7%;
+    --bad: 7 59% 41.0%;
+    --bad-text: 7 59% 41.0%;
+    --bad-bg: 12 59% 91.4%;
+    --danger: 7 59% 41.0%;
+    --danger-bg: 12 59% 91.4%;
+    --danger-border: 11 44% 78.4%;
+    --info: 144 5% 40.4%;
+    --info-bg: 46 52% 95.1%;
+    --info-border: 46 27% 84.9%;
+    --destructive: 7 59% 41.0%;
+    --idle: 144 5% 40.4%;
+    --idle-bg: 46 52% 95.1%;
+    --idle-text: 144 5% 40.4%;
+    --sand-50: 45 35% 93.3%;
+    --sand-100: 45 35% 93.3%;
+    --sand-200: 46 52% 95.1%;
+    --sand-300: 46 27% 84.9%;
+    --clay-400: 108 3% 66.9%;
+    --clay-500: 144 5% 40.4%;
+    --clay-600: 144 5% 40.4%;
+    --clay-700: 153 15% 12.0%;
+    --ink-800: 153 15% 12.0%;
+    --ink-900: 153 15% 12.0%;
+    --ink-950: 153 15% 12.0%;
+    --shadow-e1: 0 1px 2px rgba(26,35,31,.04),0 14px 34px rgba(26,35,31,.07);
+    --shadow-e2: 0 1px 2px rgba(26,35,31,.04),0 14px 34px rgba(26,35,31,.07);
+    --shadow-e3: 0 1px 2px rgba(26,35,31,.04),0 14px 34px rgba(26,35,31,.07);
+    --shadow-overlay: 0 1px 2px rgba(26,35,31,.04),0 14px 34px rgba(26,35,31,.07);
+    --shadow-e1-dark: 0 1px 2px rgba(26,35,31,.04),0 14px 34px rgba(26,35,31,.07);
+    --shadow-focus: 0 0 0 2px #F4F1E8,0 0 0 4px #1F6B4F;
+    --radius: 16px;
+    --radius-control: 10px;
+    --radius-tag: 999px;
+    --dur-3: 160ms;
+    --dur-4: 260ms;
+    --ease-spatial: cubic-bezier(.2,.8,.2,1);
+}
+
+
+/* ===================== V3 壳层动效（全部尊重 prefers-reduced-motion） ===================== */
+@keyframes v3-space-in {
+  from { opacity: 0; transform: translateY(10px) }
+  to { opacity: 1; transform: translateY(0) }
+}
+@keyframes v3-detail-in {
+  from { opacity: 0; transform: translateX(14px) }
+  to { opacity: 1; transform: translateX(0) }
+}
+@keyframes v3-pulse-dot {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 var(--v3-accent-soft, rgba(74,69,214,.3)) }
+  50% { opacity: .55; box-shadow: 0 0 0 5px transparent }
+}
+@keyframes v3-bar-grow {
+  from { transform: scaleY(.02) }
+  to { transform: scaleY(1) }
+}
+@keyframes v3-ring-grow {
+  from { stroke-dashoffset: var(--ring-circumference) }
+  to { stroke-dashoffset: var(--ring-offset) }
+}
+@keyframes v3-shimmer {
+  0% { background-position: -200% 0 }
+  100% { background-position: 200% 0 }
+}
+.animate-v3-in { animation: v3-space-in 600ms cubic-bezier(.2,.7,.2,1) both; }
+.animate-v3-detail { animation: v3-detail-in 380ms cubic-bezier(.2,.7,.2,1) both; }
+.animate-v3-dot { animation: v3-pulse-dot 1.9s ease-in-out infinite; }
+.animate-v3-bar { transform-origin: bottom center; animation: v3-bar-grow 1000ms cubic-bezier(.2,.7,.2,1) both; }
+.animate-v3-ring { animation: v3-ring-grow 1000ms cubic-bezier(.2,.7,.2,1) both; }
+.v3-scrim { background-color: var(--scrim); }
+.v3-mono { font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+.v3-shell-font { font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }

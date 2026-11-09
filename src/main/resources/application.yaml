@@ -1,0 +1,125 @@
+spring:
+  application:
+    name: OfferChaser
+  profiles:
+    active: dev
+  info:
+    app:
+      name: OfferChaser
+      version: 2.0.1
+      description: OfferChaser
+  banner:
+    charset: UTF-8
+    location: classpath:banner.txt
+  datasource:
+    url: jdbc:sqlite:./db/offerchaser.db
+    driver-class-name: org.sqlite.JDBC
+    hikari:
+      maximum-pool-size: 5
+      connection-test-query: SELECT 1
+  sql:
+    init:
+      mode: never  # 数据库文件已存在，不需要自动初始化
+  output:
+    ansi:
+      enabled: never
+
+# 服务器配置
+server:
+  port: 9527  # 后端 API 固定端口（别用 9679：落在 Windows Hyper-V 保留段 9628-9727 里，绑不上）
+  address: 127.0.0.1  # 只监听本机回环地址，管理接口不暴露到局域网
+
+# 日志配置
+logging:
+  level:
+    root: INFO
+  pattern:
+    console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr([%thread]){magenta} %clr(%-5level){highlight} %clr(%logger{36}){cyan} %clr(-){faint} %msg%n"
+  file:
+    name: ./target/logs/offerchaser.log
+  logback:
+    rollingpolicy:
+      max-history: 30
+      max-file-size: 10MB
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    banner: false  # 关闭 MyBatis Plus 启动 banner
+    db-config:
+      id-type: auto
+  mapper-locations: classpath*:/mapper/**/*.xml
+
+# ============ 平台开关 ============
+# 只启用 BOSS 直聘；平台列表保持单值。
+offerchaser:
+  platforms: boss
+  ai:
+    # AI 请求建立连接的超时（秒）
+    connect-timeout-seconds: 10
+    # 单次 AI 请求的响应超时（秒）：超时按失败处理，绝不兜底发送原文
+    request-timeout-seconds: 45
+  boss:
+    # 成功投递达到此数量即停止本轮投递（0 或负数 = 不限制）
+    # BOSS 每日打招呼上限约 150 次，默认留 5 次余量
+    daily-limit: 145
+    # 连续多少个岗位打不开聊天窗口即判定已达上限/被限流，自动停止（0 = 不限制）
+    # 打满额度后每个岗位会空转约 20 秒超时，这个闸能避免任务空跑到结束
+    consecutive-fail-limit: 8
+    # 是否启用每日投递预算（原子预留额度，写入数据库，重启后仍然有效）
+    budget-enabled: true
+    # 预算按哪个时区划分“今天”
+    budget-timezone: Asia/Shanghai
+    # 预算/台账归属的账号标识（本机单账号固定 local）
+    budget-account: local
+    # 每日跟进沟通（对已沟通过的岗位再次发消息）上限
+    followup-daily-limit: 30
+    # 期望薪资比对策略：INTERSECT=岗位区间与期望区间有交集才通过，FLOOR=岗位上限不低于期望下限即可
+    salary-strategy: INTERSECT
+    # AI 打招呼语最大字数，超过视为不合法，不发送
+    max-message-length: 120
+    # 文字发送后等待页面确认的超时（秒）；超时按“状态未知”记录，不记成功
+    text-send-confirm-timeout-seconds: 15
+    # 图片发送后等待页面确认的超时（秒）
+    image-send-confirm-timeout-seconds: 45
+    # 会话身份核对采用 fail-closed：证据冲突或无法核对时一律不发送，没有关闭开关。
+    # 命中情况写入 delivery_event.CHAT_IDENTITY_CHECK；建议先用调试模式观察真实页面证据质量。
+    # 人工安全验证最长等待时间（秒）
+    verification-timeout-seconds: 300
+    # 同一岗位两次跟进之间的最小间隔（小时）
+    followup-min-interval-hours: 72
+    # 同一岗位最多跟进次数
+    followup-max-count: 1
+    # 阶段 B B3：同一联系人（可信 HR ID）在多少个自然日内跨岗位不重复问候；<=0 关闭
+    contact-dedupe-days: 30
+    # 阶段 B B3：跟进默认需要管理台批准（批准只允许下一轮执行，不会立即发送）
+    followup-require-approval: true
+    # 阶段 B B4：有限增量采集（每个关键词最多处理多少岗位；<=0 不限制）
+    collect-max-per-keyword: 60
+    # 单关键词采集阶段最长时长（分钟；<=0 不限制）
+    collect-max-duration-minutes: 15
+    # 连续多久没有新增卡片才判定加载结束（秒）
+    collect-no-new-window-seconds: 30
+  # 规则配置（阶段 B B2）
+  rules:
+    # 用户最高学历，用于"岗位最低学历 vs 个人最高学历"比较：高中/中专/大专/本科/硕士/博士
+    highest-degree: 本科
+  # 管理台静态资源服务（前端 dev 服务未运行时，额外端口提供 dist 静态页）
+  static-server:
+    port: 6866
+    # 只监听本机回环地址
+    address: 127.0.0.1
+  # 阶段 B B5：本地访问控制（只保护写操作与 Cookie 接口，只读 GET 保持开放）
+  security:
+    # 默认取消管理台登录：本机回环运行，单用户直接进入；需要时可显式改回 true。
+    auth-enabled: false
+    # 本地会话有效期（小时），重启服务后会话失效，需要用令牌重新登录
+    session-ttl-hours: 168
+    # 首次启动自动生成的本地令牌文件（只在本机 data 目录，不提交、不写日志内容）
+    token-file: data/local-session-token
+    # 写操作必须携带 X-Requested-With: offerchaser（防跨站表单 CSRF）
+    require-csrf-header: true
+  admin:
+    # 管理台允许的跨域来源（逗号分隔）；留空表示不放行任何跨域请求，不支持 *
+    cors-allowed-origins: "http://localhost:6866,http://127.0.0.1:6866,http://localhost:9527,http://127.0.0.1:9527"

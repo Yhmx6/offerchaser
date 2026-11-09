@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+message: "OfferChaser 是 get_jobs 的衍生版本；使用或引用时请保留上游与本项目署名。"
+title: OfferChaser
+abstract: "本机运行的 BOSS 直聘投递与求职决策助手，衍生自 loks666/get_jobs。"
+authors:
+  - name: "GET JOBS (upstream)"
+    alias: loks666
+    website: "https://github.com/loks666/get_jobs"
+  - name: "OfferChaser maintainer"
+    alias: "Yhmx6"
+    website: "https://github.com/Yhmx6/OfferChaser"
+repository-code: "https://github.com/Yhmx6/OfferChaser"
+license: PolyForm-Noncommercial-1.0.0
