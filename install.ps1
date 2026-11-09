@@ -377,6 +377,23 @@ function Copy-Package {
     Write-Ok ('程序文件已复制到：' + $Target)
 }
 
+function Initialize-Database {
+    # 首次安装时直接用干净模板初始化数据库（与 启动.bat 的兜底逻辑一致）。
+    # 这样即使用户绕过启动脚本直接运行 jar，也能拿到 v13 结构的库。
+    param([string]$Target)
+    $dbFile = Join-Path $Target 'db\offerchaser.db'
+    $template = Join-Path $Target 'db\offerchaser.db.template'
+    if (Test-Path -LiteralPath $dbFile) { return }
+    if (-not (Test-Path -LiteralPath $template)) { return }
+    try {
+        New-Item -ItemType Directory -Path (Split-Path $dbFile -Parent) -Force | Out-Null
+        Copy-Item -LiteralPath $template -Destination $dbFile -Force
+        Write-Ok '已用干净模板初始化数据库（首次启动更快）'
+    } catch {
+        Write-Warn2 ('初始化数据库失败，首次启动时会自动处理：' + $_.Exception.Message)
+    }
+}
+
 function New-Shortcuts {
     param([string]$Target)
     Write-Step '5/6' '创建快捷方式'
@@ -475,6 +492,7 @@ try {
     Assert-Environment
     $target = Resolve-TargetDir
     Copy-Package -Target $target
+    Initialize-Database -Target $target
     New-Shortcuts -Target $target
     Start-OfferChaser -Target $target
     Write-Summary -Target $target
