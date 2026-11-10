@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import { Command, Lock, Palette, Search } from 'lucide-react'
 
-import { OfferChaserMark } from '@/app/components/brand/OfferChaserMark'
+import { OfferChaserLockup } from '@/app/components/brand/OfferChaserLockup'
 import { SpaceTabs } from '@/components/ui/space-tabs'
 import { API_BASE, getFollowups, getManualReleases } from '@/lib/api'
 import { dispatchAuthRequired, getSessionStatus, logout } from '@/lib/auth'
@@ -145,15 +145,8 @@ export default function TopBar() {
         style={barBorder}
       >
         <div className="mx-auto flex min-h-16 max-w-[1360px] flex-wrap items-center gap-3 px-8 py-2 max-lg:gap-2 max-lg:px-4">
-          <Link href="/boss" className="flex shrink-0 items-center gap-2" aria-label="回到今日">
-            <span
-              aria-hidden="true"
-              className="oc-logo flex size-8 items-center justify-center rounded-[10px]"
-              style={{ color: 'var(--b-ink)' }}
-            >
-              <OfferChaserMark className="size-5" />
-            </span>
-            <span className="hidden text-[15px] font-semibold tracking-[-0.01em] md:inline">OfferChaser</span>
+          <Link href="/boss" className="flex shrink-0 items-center" aria-label="回到今日">
+            <OfferChaserLockup className="h-[26px] w-auto" />
           </Link>
 
           <div className="hidden min-w-0 flex-1 justify-center lg:flex">

@@ -44,6 +44,8 @@
   --bar-hover: #f1f3fa; --bar-active: #ffffff;
   --shadow: 0 10px 30px -12px rgba(30, 34, 90, .22);
   --scrim: rgba(18, 21, 43, .45);
+  /* 品牌 Logo（官方三主题素材）：墨色 + 强调色；浅色顶栏用深墨 */
+  --logo-ink: #14161c; --logo-accent: #4a45d6;
   /* 新增层：色调（mark 色）—— KPI、胶囊、阶段条共用 */
   --oc-t-primary: #4a45d6;
   --oc-t-ok: #17956b;
@@ -84,6 +86,8 @@
   --bar-hover: #1a1d25; --bar-active: #262a34;
   --shadow: 0 14px 36px -14px rgba(0, 0, 0, .7);
   --scrim: rgba(0, 0, 0, .62);
+  /* 品牌 Logo：深色顶栏用官方 graphite 配色 */
+  --logo-ink: #edebe7; --logo-accent: #d99467;
   --oc-t-primary: #e3a06f;
   --oc-t-ok: #6fcf9e;
   --oc-t-warn: #e5c567;
@@ -121,6 +125,8 @@
   --bar-hover: #183428; --bar-active: #234a39;
   --shadow: 0 10px 30px -12px rgba(40, 52, 30, .26);
   --scrim: rgba(17, 37, 29, .5);
+  /* 品牌 Logo：深绿顶栏用浅墨 + 松绿强调（完整叠排版在浅底页面用官方 ivory 配色） */
+  --logo-ink: #f2eee2; --logo-accent: #8fd3b2;
   --oc-t-primary: #1f6b4f;
   --oc-t-ok: #4c9a3f;
   --oc-t-warn: #b8862b;
@@ -190,8 +196,8 @@
 }
 .oc-v2 .oc-logo {
   display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 10px; color: var(--accent-ink);
-  background: var(--oc-grad-primary);
-  box-shadow: 0 6px 16px -6px var(--oc-glow), inset 0 1px 0 rgba(255, 255, 255, .35);
+  background: none;
+  box-shadow: none;
 }
 .oc-v2 .oc-tabs-ink {
   background: color-mix(in srgb, var(--oc-t-primary) 13%, var(--bar-active));

@@ -13,6 +13,7 @@ import {
   type AuthRequiredDetail,
   type SessionStatus,
 } from '@/lib/auth'
+import { useTheme } from './shell/ThemeProvider'
 
 /**
  * B5：本机会话认证门（根布局外层）。
@@ -34,6 +35,7 @@ const REASON_NOTICE: Record<NonNullable<AuthRequiredDetail['reason']> | 'default
 }
 
 export default function AuthGate({ children }: { children: ReactNode }) {
+  const { theme } = useTheme()
   const [status, setStatus] = useState<SessionStatus | null>(null)
   const [gateOpen, setGateOpen] = useState(false)
   const [gateReason, setGateReason] = useState<NonNullable<AuthRequiredDetail['reason']>>('unauthorized')
@@ -123,6 +125,13 @@ export default function AuthGate({ children }: { children: ReactNode }) {
         width={480}
       >
         <div className="mt-4 space-y-4">
+          {/* 官方完整叠排 Logo（三主题各一份，浅色/深色背景自动匹配） */}
+          <img
+            src={`/brand/OfferChaser-logo-${theme}.svg`}
+            alt="OfferChaser"
+            className="mx-auto h-24 w-auto max-w-full"
+          />
+
           <p
             className={`flex items-start gap-2 rounded-control border border-l-2 px-3 py-2 text-sm ${
               gateReason === 'expired' || gateReason === 'csrf'
