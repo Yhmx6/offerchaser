@@ -68,6 +68,12 @@ export interface AiDraftRequest {
   cityCode?: string | null
   expectedSalaryMin?: number | null
   expectedSalaryMax?: number | null
+  /**
+   * BOSS 薪资范围档位名称（如 ["5-10K","10-20K"]，可多选；最多 6 个、单项 ≤ 20 字）。
+   * 写入模板 config.salary；空数组/null 表示档位不限。
+   * 显式传值（即使是空数组）表示用户已处理过薪资问题，后端不会再用画像推荐值回填。
+   */
+  salary?: string[]
   exclusions?: string[]
   intensity: 'trial' | 'normal' | 'active'
   sendImgResume: boolean
@@ -79,6 +85,7 @@ export interface AiDraftResult {
   name: string
   direction?: string | null
   description?: string | null
+  /** 与 TemplateConfigRequest 一致：salary 为 BOSS 薪资档位名称数组，expectedSalaryMin/Max 为期望薪资上下限 */
   config: TemplateConfigRequest
   warnings?: string[]
 }

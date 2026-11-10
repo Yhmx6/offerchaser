@@ -24,7 +24,7 @@ import {
   updateTemplateConfig,
   uploadTemplateResume,
 } from '@/lib/api'
-import type { AiDraftRequest, AiDraftResult, ResumeAnalysis, ResumeDirection } from '@/lib/ai-template-types'
+import type { AiDraftRequest, AiDraftResult, ResumeAnalysis, ResumeDirection, ResumeSalaryBand } from '@/lib/ai-template-types'
 import type { BossOption, TemplateView } from '@/lib/boss-types'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
@@ -57,7 +57,7 @@ type Step =
 const QA_STEPS: Step[] = ['qa-city', 'qa-salary', 'qa-exclusions', 'qa-intensity', 'qa-image']
 const QA_TITLES: Record<string, string> = {
   'qa-city': '希望优先看哪些城市？（可多选，最多 4 个）',
-  'qa-salary': '期望月薪下限是多少？',
+  'qa-salary': '期望薪资范围是多少？',
   'qa-exclusions': '有哪些岗位/公司/词需要排除？',
   'qa-intensity': '投递强度选哪一档？',
   'qa-image': '需要自动发送图片简历吗？',
@@ -76,6 +76,8 @@ interface Answers {
   cities: string[]
   salaryMin: string
   salaryMax: string
+  /** BOSS 薪资范围档位名称（如 ["5-10K","10-20K"]；写入模板 config.salary） */
+  salary: string[]
   /** 常用排除项里勾选的词 */
   exclusionSelected: string[]
   /** 自定义排除项文本（逗号/换行分隔） */
@@ -103,11 +105,14 @@ const EMPTY_PROFILE: ProfileForm = {
 const DEFAULT_EXCLUSIONS = ['外包', '销售', '保险', '房产中介', '培训', '劳务派遣']
 const MAX_CITIES = 4
 const MAX_INDUSTRIES = 6
+/** 与后端 TemplateDraftService 的薪资上限校验保持一致（K/月） */
+const MAX_SALARY_K = 1000
 
 const EMPTY_ANSWERS: Answers = {
   cities: [],
   salaryMin: '',
   salaryMax: '',
+  salary: [],
   exclusionSelected: [...DEFAULT_EXCLUSIONS],
   exclusions: '',
   industries: [],
@@ -159,6 +164,52 @@ function uniqueList(values: string[]): string[] {
 /** 合并「常用排除项 chips + 自定义文本」，去重后进入草稿请求 */
 function mergeExclusions(selected: string[], custom: string): string[] {
   return uniqueList([...selected, ...splitList(custom)])
+}
+
+/** 只保留正数（K/月）；null/0/非法值统一视为未设置 */
+function positiveOrNull(value?: number | null): number | null {
+  if (value === null || value === undefined || !Number.isFinite(value) || value <= 0) return null
+  return Math.trunc(value)
+}
+
+/**
+ * 解析 BOSS 薪资档位名称 → 数值区间（K/月）。
+ * `3K以下` → [0,3]；`3-5K` → [3,5]；`50K以上` → [50,∞)；min/max 为 null 表示该侧无界。
+ * 无法解析（如「不限」）返回 null。
+ */
+function parseSalaryRange(label: string): { min: number | null; max: number | null } | null {
+  const text = label.replace(/\s+/g, '')
+  const below = text.match(/^(\d+(?:\.\d+)?)[kK]?以下$/)
+  if (below) return { min: 0, max: Math.trunc(Number(below[1])) }
+  const above = text.match(/^(\d+(?:\.\d+)?)[kK]?以上$/)
+  if (above) return { min: Math.trunc(Number(above[1])), max: null }
+  const between = text.match(/^(\d+(?:\.\d+)?)[kK]?[-~—–](\d+(?:\.\d+)?)[kK]?$/)
+  if (between) return { min: Math.trunc(Number(between[1])), max: Math.trunc(Number(between[2])) }
+  return null
+}
+
+/** 与 [min,max] 有交集的 BOSS 薪资档位名称；上下限都为 null（用户未设区间）时不自动预选 */
+function salaryRangesIntersecting(options: BossOption[], min: number | null, max: number | null): string[] {
+  if (min === null && max === null) return []
+  const result: string[] = []
+  for (const option of options) {
+    if (!option?.name || option.name === '不限') continue
+    if (option.type && option.type !== 'salary') continue
+    const range = parseSalaryRange(option.name)
+    if (!range) continue
+    if (max !== null && range.min !== null && range.min > max) continue
+    if (min !== null && range.max !== null && range.max < min) continue
+    result.push(option.name)
+  }
+  return result
+}
+
+/** 期望月薪展示文案：8–14K / ≥8K / ≤14K / 未设置 */
+function salaryRangeText(min: number | null, max: number | null): string {
+  if (min !== null && max !== null) return `${min}–${max}K`
+  if (min !== null) return `≥${min}K`
+  if (max !== null) return `≤${max}K`
+  return '未设置'
 }
 
 /** 画像里的年限 → BOSS 经验档（仅用于预览展示，最终以后端草稿为准） */
@@ -252,6 +303,7 @@ export default function AiTemplateWizard({
   const [answers, setAnswers] = useState<Answers>({ ...EMPTY_ANSWERS })
   const [cityOptions, setCityOptions] = useState<BossOption[]>([])
   const [industryOptions, setIndustryOptions] = useState<BossOption[]>([])
+  const [salaryOptions, setSalaryOptions] = useState<BossOption[]>([])
 
   const [drafting, setDrafting] = useState(false)
   const [draftError, setDraftError] = useState<string | null>(null)
@@ -267,22 +319,41 @@ export default function AiTemplateWizard({
 
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
-  // 城市/行业选项（失败时退化为文本输入，不阻断向导）
+  // 城市/行业/薪资档位选项（失败时退化为文本输入，不阻断向导）
   useEffect(() => {
     let alive = true
-    Promise.allSettled([getBossOptions('city'), getBossOptions('industry')]).then(([cityResult, industryResult]) => {
-      if (!alive) return
-      setCityOptions(
-        cityResult.status === 'fulfilled' && Array.isArray(cityResult.value) ? cityResult.value : []
-      )
-      setIndustryOptions(
-        industryResult.status === 'fulfilled' && Array.isArray(industryResult.value) ? industryResult.value : []
-      )
-    })
+    Promise.allSettled([getBossOptions('city'), getBossOptions('industry'), getBossOptions('salary')]).then(
+      ([cityResult, industryResult, salaryResult]) => {
+        if (!alive) return
+        setCityOptions(
+          cityResult.status === 'fulfilled' && Array.isArray(cityResult.value) ? cityResult.value : []
+        )
+        setIndustryOptions(
+          industryResult.status === 'fulfilled' && Array.isArray(industryResult.value) ? industryResult.value : []
+        )
+        setSalaryOptions(
+          salaryResult.status === 'fulfilled' && Array.isArray(salaryResult.value) ? salaryResult.value : []
+        )
+      }
+    )
     return () => {
       alive = false
     }
   }, [])
+
+  // 薪资档位选项可能晚于简历分析结果返回：选项就绪后为「还没选档位但有推荐区间」的答案补一次自动预选
+  // （用户在问答里手动清空档位后不会再次被覆盖，因为该 effect 只随 salaryOptions / analysis 变化触发）。
+  // analysis 也作为依赖：applyAnalysis 是异步回调，它闭包里的 salaryOptions 可能还是空数组，
+  // 等分析结果写入 state 后再用最新区间兜底预选一次。
+  useEffect(() => {
+    if (salaryOptions.length === 0) return
+    setAnswers((prev) => {
+      if (prev.salary.length > 0) return prev
+      const preset = salaryRangesIntersecting(salaryOptions, numberOrNull(prev.salaryMin), numberOrNull(prev.salaryMax))
+      if (preset.length === 0) return prev
+      return { ...prev, salary: preset }
+    })
+  }, [salaryOptions, analysis])
 
   // 打开时锁定 body 滚动
   useEffect(() => {
@@ -361,11 +432,18 @@ export default function AiTemplateWizard({
         : firstBand
           ? String(firstBand.max)
           : ''
+    // 按默认区间自动预选相交的 BOSS 薪资档位（选项未加载完时由 salaryOptions 的 effect 兜底）
+    const defaultSalaryRanges = salaryRangesIntersecting(
+      salaryOptions,
+      numberOrNull(defaultSalaryMin),
+      numberOrNull(defaultSalaryMax)
+    )
     setAnswers({
       ...EMPTY_ANSWERS,
       cities: uniqueList(result.profile?.cities ?? []).slice(0, MAX_CITIES),
       salaryMin: defaultSalaryMin,
       salaryMax: defaultSalaryMax,
+      salary: defaultSalaryRanges,
       industries: defaultIndustriesFor(aiDirections[0], result.profile),
     })
     setStep('profile')
@@ -435,8 +513,15 @@ export default function AiTemplateWizard({
   }
 
   const validateSalary = (): string | null => {
+    if (answers.salaryMin.trim() && numberOrNull(answers.salaryMin) === null) return '期望月薪下限请输入有效数字'
+    if (answers.salaryMax.trim() && numberOrNull(answers.salaryMax) === null) return '期望月薪上限请输入有效数字'
     const min = numberOrNull(answers.salaryMin)
+    const max = numberOrNull(answers.salaryMax)
     if (min !== null && min < 0) return '期望月薪下限不能为负数'
+    if (max !== null && max < 0) return '期望月薪上限不能为负数'
+    if (min !== null && min > MAX_SALARY_K) return `期望月薪下限不能超过 ${MAX_SALARY_K}K`
+    if (max !== null && max > MAX_SALARY_K) return `期望月薪上限不能超过 ${MAX_SALARY_K}K`
+    if (min !== null && max !== null && min > max) return '期望月薪上限不能低于下限'
     return null
   }
 
@@ -458,8 +543,10 @@ export default function AiTemplateWizard({
         // 兼容旧后端：cityCode 仍传第一个城市；新后端优先使用 cities
         cityCode: answers.cities[0] ?? null,
         expectedSalaryMin: numberOrNull(answers.salaryMin),
-        // 规则只设下限；上限不再提交，避免出现“设了上限但实际不生效”的误解。
-        expectedSalaryMax: null,
+        // 上限只写入模板期望薪资（config.expectedSalaryMax），规则层仍只设下限；空则 null（不提交 0）。
+        expectedSalaryMax: numberOrNull(answers.salaryMax),
+        // BOSS 薪资范围档位名称（config.salary）；空数组表示不限。
+        salary: answers.salary.slice(),
         exclusions: mergeExclusions(answers.exclusionSelected, answers.exclusions),
         intensity: answers.intensity,
         sendImgResume: answers.sendImgResume,
@@ -481,6 +568,18 @@ export default function AiTemplateWizard({
     if (step === 'upload') return
     if (step === 'analyzing') return
     if (step === 'profile') {
+      // 画像里改过的城市/行业要同步给后续问答：否则 AI 从简历预填的旧城市仍会作为主搜索城市进入草稿。
+      const profileCities = uniqueList(splitList(profileForm.cities)).slice(0, MAX_CITIES)
+      const profileIndustries = uniqueList(splitList(profileForm.industries))
+      const matchedIndustries =
+        industryNames.length > 0
+          ? profileIndustries.filter((name) => industryNames.includes(name))
+          : profileIndustries
+      setAnswers((prev) => ({
+        ...prev,
+        cities: profileCities,
+        industries: matchedIndustries.slice(0, MAX_INDUSTRIES),
+      }))
       setStep('direction')
       return
     }
@@ -521,6 +620,11 @@ export default function AiTemplateWizard({
     }
     if (step === 'direction') {
       setStep('profile')
+      return
+    }
+    if (step === 'preview') {
+      // 预览退回到最后一个问答；改完答案可重新生成草稿（草稿未保存前不会创建模板）。
+      setStep('qa-image')
       return
     }
     if (isQaStep) {
@@ -784,6 +888,7 @@ export default function AiTemplateWizard({
               answers={answers}
               setAnswers={setAnswers}
               cityOptions={cityOptions}
+              salaryOptions={salaryOptions}
               salaryBands={salaryBands}
               stepError={stepError}
             />
@@ -1475,20 +1580,47 @@ function QaStep({
   answers,
   setAnswers,
   cityOptions,
+  salaryOptions,
   salaryBands,
   stepError,
 }: {
   step: (typeof QA_STEPS)[number]
   index: number
   answers: Answers
-  setAnswers: (answers: Answers) => void
+  setAnswers: React.Dispatch<React.SetStateAction<Answers>>
   cityOptions: BossOption[]
+  salaryOptions: BossOption[]
   salaryBands: ResumeAnalysis['salaryBands']
   stepError: string | null
 }) {
-  const set = (patch: Partial<Answers>) => setAnswers({ ...answers, ...patch })
+  const set = (patch: Partial<Answers> | ((prev: Answers) => Partial<Answers>)) =>
+    setAnswers((prev) => ({ ...prev, ...(typeof patch === 'function' ? patch(prev) : patch) }))
   const [citySearch, setCitySearch] = useState('')
   const [cityError, setCityError] = useState<string | null>(null)
+
+  /** 可选的 BOSS 薪资档位（排除「不限」；选项缺失时为空数组，不阻断向导） */
+  const salaryRangeOptions = salaryOptions.filter(
+    (option) => option.name !== '不限' && (!option.type || option.type === 'salary')
+  )
+
+  /** 点击 AI 推荐区间：同时填入上下限，并按新区间重算相交的 BOSS 档位 */
+  const applyRecommendedBand = (band: ResumeSalaryBand) => {
+    const nextMin = Number.isFinite(band.min) ? String(Math.trunc(band.min)) : ''
+    const nextMax = Number.isFinite(band.max) ? String(Math.trunc(band.max)) : ''
+    set({
+      salaryMin: nextMin,
+      salaryMax: nextMax,
+      salary: salaryRangesIntersecting(salaryRangeOptions, numberOrNull(nextMin), numberOrNull(nextMax)),
+    })
+  }
+
+  const toggleSalaryRange = (name: string) => {
+    set((prev) => ({
+      salary: prev.salary.includes(name)
+        ? prev.salary.filter((item) => item !== name)
+        : [...prev.salary, name],
+    }))
+  }
 
   const toggleCity = (name: string) => {
     setCityError(null)
@@ -1616,36 +1748,129 @@ function QaStep({
       ) : null}
 
       {step === 'qa-salary' ? (
-        <div className="space-y-2">
-          <label className="block space-y-1 text-sm">
-            <span className="block text-xs text-[var(--v3-muted)]">月薪下限（K，只设下限）</span>
-            <input
-              type="number"
-              value={answers.salaryMin}
-              onChange={(event) => set({ salaryMin: event.target.value })}
-              className="h-10 w-full rounded-[10px] border bg-[var(--surface2)] px-3 text-sm outline-none"
-              style={{ borderColor: 'var(--v3-line)', color: 'var(--text)' }}
-            />
-          </label>
+        <div className="space-y-3">
+          <div className="rounded-[12px] border px-3 py-2 text-sm" style={{ borderColor: 'var(--v3-line)' }}>
+            <p className="text-xs text-[var(--v3-muted)]">当前期望薪资</p>
+            <p className="mt-0.5 font-medium">
+              {salaryRangeText(numberOrNull(answers.salaryMin), numberOrNull(answers.salaryMax))}
+              <span className="ml-2 text-xs font-normal text-[var(--v3-muted)]">
+                BOSS 档位：{answers.salary.length > 0 ? answers.salary.join('、') : '不限'}
+              </span>
+            </p>
+          </div>
+
+          <div className="grid gap-2 sm:grid-cols-2">
+            <label className="block space-y-1 text-sm">
+              <span className="block text-xs text-[var(--v3-muted)]">月薪下限（K/月，可选）</span>
+              <input
+                type="number"
+                min={0}
+                max={MAX_SALARY_K}
+                value={answers.salaryMin}
+                onChange={(event) => set({ salaryMin: event.target.value })}
+                placeholder="如 8"
+                className="h-10 w-full rounded-[10px] border bg-[var(--surface2)] px-3 text-sm outline-none"
+                style={{ borderColor: 'var(--v3-line)', color: 'var(--text)' }}
+              />
+            </label>
+            <label className="block space-y-1 text-sm">
+              <span className="block text-xs text-[var(--v3-muted)]">月薪上限（K/月，可选；留空表示不设上限）</span>
+              <input
+                type="number"
+                min={0}
+                max={MAX_SALARY_K}
+                value={answers.salaryMax}
+                onChange={(event) => set({ salaryMax: event.target.value })}
+                placeholder="如 14"
+                className="h-10 w-full rounded-[10px] border bg-[var(--surface2)] px-3 text-sm outline-none"
+                style={{ borderColor: 'var(--v3-line)', color: 'var(--text)' }}
+              />
+            </label>
+          </div>
+
           {salaryBands && salaryBands.length > 0 ? (
             <div className="space-y-1">
-              <p className="text-xs text-[var(--v3-muted)]">AI 参考区间（点击可取参考下限，仍可修改）</p>
+              <p className="text-xs text-[var(--v3-muted)]">
+                AI 推荐区间（点击同时填入上下限，并自动选中相交的 BOSS 档位，仍可手动修改）
+              </p>
               <div className="flex flex-wrap gap-1.5">
-                {salaryBands.map((band, index) => (
-                  <button
-                    key={`${band.label}-${index}`}
-                    type="button"
-                    onClick={() => set({ salaryMin: String(band.min) })}
-                    className="rounded-full border px-2.5 py-1 text-xs"
-                    style={{ borderColor: 'var(--v3-line)', color: 'var(--v3-muted)' }}
-                  >
-                    {band.label}：{band.min}–{band.max}K
-                  </button>
-                ))}
+                {salaryBands.map((band, index) => {
+                  const active = answers.salaryMin === String(band.min) && answers.salaryMax === String(band.max)
+                  return (
+                    <button
+                      key={`${band.label}-${index}`}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => applyRecommendedBand(band)}
+                      className="rounded-full border px-2.5 py-1 text-xs"
+                      style={
+                        active
+                          ? { borderColor: 'var(--v3-accent)', backgroundColor: 'var(--accent-soft)', color: 'var(--v3-accent)' }
+                          : { borderColor: 'var(--v3-line)', color: 'var(--v3-muted)' }
+                      }
+                    >
+                      {band.label}：{band.min}–{band.max}K
+                    </button>
+                  )
+                })}
               </div>
             </div>
           ) : null}
-          <p className="text-xs text-[var(--v3-muted)]">只设下限，不设上限；岗位薪资上限达到下限即可通过。</p>
+
+          <div className="space-y-1.5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs text-[var(--v3-muted)]">BOSS 薪资范围（可多选；默认按 AI 推荐区间预选）</p>
+              <button
+                type="button"
+                disabled={answers.salary.length === 0}
+                onClick={() => set({ salary: [] })}
+                className="rounded-full border px-2.5 py-1 text-xs disabled:cursor-not-allowed disabled:opacity-40"
+                style={{ borderColor: 'var(--v3-line)', color: 'var(--v3-muted)' }}
+              >
+                不限 / 清空
+              </button>
+            </div>
+            {salaryRangeOptions.length > 0 ? (
+              <div
+                className="flex flex-wrap gap-1.5 rounded-[12px] border p-2"
+                style={{ borderColor: 'var(--v3-line)' }}
+                role="group"
+                aria-label="BOSS 薪资范围"
+              >
+                {salaryRangeOptions.map((option) => {
+                  const active = answers.salary.includes(option.name)
+                  return (
+                    <button
+                      key={option.code || option.name}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => toggleSalaryRange(option.name)}
+                      className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs"
+                      style={
+                        active
+                          ? { borderColor: 'var(--v3-accent)', backgroundColor: 'var(--accent-soft)', color: 'var(--v3-accent)' }
+                          : { borderColor: 'var(--v3-line)', color: 'var(--v3-muted)' }
+                      }
+                    >
+                      {active ? <Check aria-hidden="true" className="size-3" /> : null}
+                      {option.name}
+                    </button>
+                  )
+                })}
+              </div>
+            ) : (
+              <p
+                className="rounded-[12px] border border-dashed px-3 py-2 text-xs text-[var(--v3-muted)]"
+                style={{ borderColor: 'var(--v3-line)' }}
+              >
+                薪资档位选项不可用：可只填上下限生成草稿（档位留空表示不限）。
+              </p>
+            )}
+          </div>
+
+          <p className="text-xs text-[var(--v3-muted)]">
+            BOSS 薪资档位用于搜索筛选；月薪下限同时进入规则；不改变预算与安全确认。
+          </p>
         </div>
       ) : null}
 
@@ -1802,6 +2027,9 @@ function PreviewStep({
     ? config.scale.join('、')
     : '20 人以上（20-99 / 100-499 / 500-999 / 1000-9999 / 10000 人以上）'
   const stageText = config.stage?.length ? config.stage.join('、') : '不限'
+  // 期望月薪：优先取后端草稿 config（上下限都写），其次规则层（规则层只设下限）；0/null 视为未设置。
+  const draftSalaryMin = positiveOrNull(config.expectedSalaryMin) ?? positiveOrNull(rule?.expectedSalaryMin)
+  const draftSalaryMax = positiveOrNull(config.expectedSalaryMax) ?? positiveOrNull(rule?.expectedSalaryMax)
 
   const rows: { label: string; value: React.ReactNode }[] = [
     { label: '方向', value: directionTitle || draft.direction || '—' },
@@ -1812,15 +2040,8 @@ function PreviewStep({
     { label: '经验要求', value: experienceText },
     { label: '公司规模', value: scaleText },
     { label: '融资阶段', value: stageText },
-    {
-      label: '期望月薪下限',
-      value:
-        rule?.expectedSalaryMin != null && rule.expectedSalaryMin > 0
-          ? `${rule.expectedSalaryMin}K 起`
-          : config.expectedSalaryMin != null && config.expectedSalaryMin > 0
-            ? `${config.expectedSalaryMin}K 起`
-            : '未设置',
-    },
+    { label: '期望月薪', value: salaryRangeText(draftSalaryMin, draftSalaryMax) },
+    { label: '薪资范围', value: config.salary?.length ? config.salary.join('、') : '不限' },
     { label: 'AI 评估', value: config.enableAI ? '启用' : '未启用' },
     { label: '图片简历', value: config.sendImgResume ? '自动发送（仍走图片确认）' : '不自动发送' },
     {
