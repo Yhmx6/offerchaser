@@ -5,7 +5,8 @@
 | 入口 | 行为 |
 |---|---|
 | `OfferChaser.vbs` | 无窗口拉起 `OfferChaser.ps1`：检测 9527 是否已在监听；未启动则用内置 JDK 启动后端，随后打开管理台并驻留托盘 |
-| `启动.bat` | 控制台方式启动（调试用）：检查内置 JDK、清理外部 `SERVER_PORT` 覆盖、启动并等待就绪 |
+| `启动.bat` | 双击时静默托盘启动（转交 `OfferChaser.vbs`，无控制台窗口）；加 `--console` 才走控制台分支（排障用）：检查内置 JDK、清理外部 `SERVER_PORT` 覆盖、启动并等待就绪 |
+| `启动-显示日志.bat` | 等价于 `启动.bat --console`：保留控制台窗口显示启动日志，排障用 |
 | `停止OfferChaser.vbs` | 托盘“停止服务”：先请求后端停止投递并等待 worker 退出，再结束进程（不是强杀） |
 | `start-local.ps1` | 开发模式：`gradlew bootRun`，读取 `db/offerchaser.db`，用于源码调试 |
 | `打开Chrome.bat` | 手动打开本机 Chrome（调试账号/页面用，不启动系统） |

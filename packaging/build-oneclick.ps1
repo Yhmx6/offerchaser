@@ -11,6 +11,7 @@
     front\app\favicon.ico
     db\offerchaser.db.template
     启动.bat / OfferChaser.vbs / 停止OfferChaser.vbs / OfferChaser.ps1
+    （可选）启动-显示日志.bat
 
   脚本只按白名单拷贝，RuntimeDir 里的 db\offerchaser.db、data\、browser-data\、target\
   一律不会被带进发布包。
@@ -126,6 +127,15 @@ function Copy-WhitelistDirs {
     foreach ($f in @('启动.bat', 'OfferChaser.vbs', '停止OfferChaser.vbs', 'OfferChaser.ps1')) {
         Copy-Item -LiteralPath (Join-Path $RuntimeDir $f) -Destination (Join-Path $Stage $f) -Force
         Write-Ok $f
+    }
+
+    # 排障入口（启动.bat --console 的壳），运行目录里没有就跳过，不阻塞组包。
+    $consoleLaunch = '启动-显示日志.bat'
+    if (Test-Path -LiteralPath (Join-Path $RuntimeDir $consoleLaunch)) {
+        Copy-Item -LiteralPath (Join-Path $RuntimeDir $consoleLaunch) -Destination (Join-Path $Stage $consoleLaunch) -Force
+        Write-Ok $consoleLaunch
+    } else {
+        Write-Info ($consoleLaunch + ' 不在运行目录里，跳过（可用 启动.bat --console 代替）')
     }
 
     New-Item -ItemType Directory -Path (Join-Path $Stage 'db') -Force | Out-Null

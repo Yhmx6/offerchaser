@@ -145,8 +145,10 @@ function Start-App {
 
     $batch = Join-Path $Root '启动.bat'
     try {
+        # 必须显式带 --console：无参数双击 启动.bat 会静默转交 OfferChaser.vbs（托盘入口），
+        # 这里本身已在托盘进程里，再转交一次会循环/起不来；直接走控制台分支拉起后端。
         Start-Process -FilePath 'cmd.exe' `
-            -ArgumentList @('/c', ('"' + $batch + '"')) `
+            -ArgumentList @('/c', ('"' + $batch + '" --console')) `
             -WorkingDirectory $Root `
             -WindowStyle Hidden `
             -ErrorAction Stop | Out-Null

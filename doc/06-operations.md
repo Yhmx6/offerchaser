@@ -18,7 +18,8 @@
 | 操作 | 方式 |
 |---|---|
 | 托盘启动 | 双击 `OfferChaser.vbs`（隐藏窗口、驻留托盘，自动打开管理台） |
-| 控制台启动 | 双击 `启动.bat` 或运行 `OfferChaser.ps1`（调试输出可见） |
+| 静默启动 | 双击 `启动.bat`：与托盘启动等价，静默转交 `OfferChaser.vbs`，不会出现黑窗口 |
+| 控制台启动（排障） | `启动.bat --console`（或双击 `启动-显示日志.bat`）：保留控制台窗口显示实时日志 |
 | 开发启动 | `start-local.ps1`（`gradlew bootRun`，需 JDK 21 与 `db/offerchaser.db`） |
 | 停止 | 双击 `停止OfferChaser.vbs` 或托盘菜单“停止服务”：先停止投递任务、等待 worker 退出，再退出进程 |
 | 状态 | 托盘工具提示/`OfferChaser.ps1 -Status`；也可访问 `GET /api/health` |
@@ -30,6 +31,9 @@
 - 检测 9527 已监听则直接打开管理台，不重复启动；
 - 使用内置 JDK，清理外部 `SERVER_PORT/SERVER__PORT`，避免端口被环境变量覆盖；
 - 日志：`target/logs/launcher.out.log`、`target/logs/launcher.err.log`。
+
+> 双击 `启动.bat` 不会保留控制台窗口，而是静默转交 `OfferChaser.vbs`（托盘启动）；
+> 需要看实时日志时，用 `启动.bat --console` 或双击 `启动-显示日志.bat`。托盘方式 `OfferChaser.vbs` 不变。
 
 ## 3. 首次配置
 

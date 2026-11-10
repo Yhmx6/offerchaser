@@ -1,4 +1,17 @@
 @echo off
+rem ============================================================
+rem  OfferChaser launcher (source repo / dev, uses .jdk + gradlew)
+rem  Double-click (no args) -> silent tray start via OfferChaser.vbs,
+rem  so no console window is left behind.
+rem  Need the live log window? Run this file with --console
+rem  (or double-click the "show log" .bat next to this file).
+rem ============================================================
+if not "%~1"=="" goto :console
+if not exist "%~dp0OfferChaser.vbs" goto :console
+start "" "%~dp0OfferChaser.vbs"
+exit /b 0
+
+:console
 title OfferChaser Launcher
 chcp 65001 >nul
 set "JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF-8 -Dsun.stdout.encoding=UTF-8 -Dsun.stderr.encoding=UTF-8"
@@ -25,7 +38,7 @@ set "SERVER__PORT="
 set "SERVER_PORT="
 
 echo ==========================================
-echo   OfferChaser starting...
+echo   OfferChaser starting (console log mode)...
 echo   Admin UI : http://localhost:6866
 echo   Backend  : http://localhost:9527
 echo   First start takes 10-30s, keep this window open
