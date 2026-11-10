@@ -17,6 +17,8 @@ import java.util.List;
  * @param templateName       模板名称
  * @param cities             城市名称列表（最多 4 个；第一个作为模板城市，全部进入规则城市条件）
  * @param industries         用户确认的行业名称（最多 6 个；写入模板行业条件）
+ * @param salary             BOSS 薪资档位名称列表（最多 6 个、单项 ≤ 20 字；null/空表示不设置档位）。
+ *                           显式传值（即使是空列表）表示用户已经处理过薪资问题，服务端不会再用画像推荐值回填。
  */
 public record AiDraftRequest(
         ResumeProfile profile,
@@ -30,14 +32,24 @@ public record AiDraftRequest(
         Boolean sendImgResume,
         String templateName,
         List<String> cities,
-        List<String> industries) {
+        List<String> industries,
+        List<String> salary) {
 
-    /** 兼容旧调用方（只有 cityCode，没有 cities/industries）。 */
+    /** 兼容旧调用方（只有 cityCode，没有 cities/industries/salary）。 */
     public AiDraftRequest(ResumeProfile profile, String direction, List<String> keywords,
                           String cityCode, Integer expectedSalaryMin, Integer expectedSalaryMax,
                           List<String> exclusions, String intensity, Boolean sendImgResume,
                           String templateName) {
         this(profile, direction, keywords, cityCode, expectedSalaryMin, expectedSalaryMax,
-                exclusions, intensity, sendImgResume, templateName, null, null);
+                exclusions, intensity, sendImgResume, templateName, null, null, null);
+    }
+
+    /** 兼容只传 cities/industries、还没有 salary 档位的调用方与旧前端。 */
+    public AiDraftRequest(ResumeProfile profile, String direction, List<String> keywords,
+                          String cityCode, Integer expectedSalaryMin, Integer expectedSalaryMax,
+                          List<String> exclusions, String intensity, Boolean sendImgResume,
+                          String templateName, List<String> cities, List<String> industries) {
+        this(profile, direction, keywords, cityCode, expectedSalaryMin, expectedSalaryMax,
+                exclusions, intensity, sendImgResume, templateName, cities, industries, null);
     }
 }

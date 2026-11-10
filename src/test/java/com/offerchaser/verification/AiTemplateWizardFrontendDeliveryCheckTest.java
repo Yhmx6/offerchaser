@@ -64,7 +64,7 @@ class AiTemplateWizardFrontendDeliveryCheckTest {
             assertTrue(wizard.contains(step), "向导缺少步骤：" + step);
         }
         for (String title : List.of("希望优先看哪些城市？（可多选，最多 4 个）",
-                "期望月薪下限是多少？", "有哪些岗位/公司/词需要排除？",
+                "期望薪资范围是多少？", "有哪些岗位/公司/词需要排除？",
                 "投递强度选哪一档？", "需要自动发送图片简历吗？")) {
             assertTrue(wizard.contains(title), "缺少逐条问题：" + title);
         }
@@ -100,13 +100,16 @@ class AiTemplateWizardFrontendDeliveryCheckTest {
         assertTrue(profileStep.contains("yearsExperience") && profileStep.contains("experienceLabel"),
                 "画像应只读展示年限与 BOSS 经验档");
 
-        // 薪资只在问答里确认
+        // 薪资只在问答里确认：期望上下限 + BOSS 薪资档位多选
         int qaStart = wizard.indexOf("function QaStep(");
         String qaStep = wizard.substring(qaStart, wizard.indexOf("function PreviewStep("));
-        assertTrue(qaStep.contains("月薪下限（K，只设下限）"),
-                "薪资问答只保留下限输入");
-        assertFalse(qaStep.contains("月薪上限（K）"), "薪资问答不得再有上限输入");
-        assertTrue(qaStep.contains("只设下限，不设上限"), "薪资问答应说明只设下限");
+        assertTrue(qaStep.contains("月薪下限（K/月，可选）"), "薪资问答应有期望月薪下限输入");
+        assertTrue(qaStep.contains("月薪上限（K/月，可选"), "薪资问答应有期望月薪上限输入");
+        assertTrue(qaStep.contains("BOSS 薪资范围（可多选"), "薪资问答应支持 BOSS 薪资档位多选");
+        assertTrue(qaStep.contains("BOSS 薪资档位用于搜索筛选") && qaStep.contains("月薪下限同时进入规则"),
+                "薪资问答应说明档位与规则各自的作用");
+        assertTrue(qaStep.contains("AI 推荐区间"), "薪资问答应展示 AI 推荐区间");
+        assertTrue(wizard.contains("getBossOptions('salary')"), "BOSS 薪资档位必须走真实 BOSS 选项接口");
     }
 
     @Test
@@ -173,6 +176,9 @@ class AiTemplateWizardFrontendDeliveryCheckTest {
         for (String marker : List.of("cities: answers.cities.slice(0, MAX_CITIES)",
                 "industries: answers.industries.slice(0, MAX_INDUSTRIES)",
                 "cityCode: answers.cities[0] ?? null",
+                "expectedSalaryMin: numberOrNull(answers.salaryMin)",
+                "expectedSalaryMax: numberOrNull(answers.salaryMax)",
+                "salary: answers.salary.slice()",
                 "exclusions: mergeExclusions(answers.exclusionSelected, answers.exclusions)",
                 "intensity: answers.intensity")) {
             assertTrue(payload.contains(marker), "草稿请求体缺少字段：" + marker);
@@ -181,7 +187,7 @@ class AiTemplateWizardFrontendDeliveryCheckTest {
         int previewStart = wizard.indexOf("function PreviewStep(");
         String preview = wizard.substring(previewStart);
         for (String label : List.of("城市", "行业", "学历要求", "经验要求", "公司规模", "融资阶段",
-                "期望月薪下限", "采集策略", "筛选规则")) {
+                "期望月薪", "薪资范围", "采集策略", "筛选规则")) {
             assertTrue(preview.contains("label: '" + label + "'"),
                     "预览缺少字段：" + label);
         }
@@ -193,11 +199,14 @@ class AiTemplateWizardFrontendDeliveryCheckTest {
         assertTrue(preview.contains("config.degree") && preview.contains("config.experience"),
                 "预览应直接展示后端映射的学历/经验");
         assertTrue(wizard.contains("config.industry?.length"), "预览应展示后端映射的行业");
-        assertTrue(wizard.contains("rule?.expectedSalaryMin") && wizard.contains("${rule.expectedSalaryMin}K 起"),
-                "预览薪资应显示规则下限 minK 起");
-        assertTrue(wizard.contains("expectedSalaryMax: null"),
-                "AI 草稿请求上限必须为 null（只设下限）");
-        assertFalse(wizard.contains("月薪上限（K）"), "向导不得再有薪资上限输入");
+        assertTrue(wizard.contains("config.expectedSalaryMin") && wizard.contains("config.expectedSalaryMax"),
+                "预览期望月薪应取后端草稿 config 的真实上下限");
+        assertTrue(wizard.contains("salaryRangeText(draftSalaryMin, draftSalaryMax)"),
+                "预览期望月薪应展示区间文案");
+        assertTrue(wizard.contains("config.salary?.length ? config.salary.join"),
+                "预览应展示 BOSS 薪资档位（config.salary）");
+        assertFalse(wizard.contains("expectedSalaryMax: null"),
+                "草稿请求必须提交用户真实期望上限，不能再写死 null");
     }
 
     @Test
@@ -242,8 +251,8 @@ class AiTemplateWizardFrontendDeliveryCheckTest {
 
         String types = Files.readString(TYPES);
         for (String field : List.of("major", "graduationYear", "industries",
-                "cities: string[]", "industries: string[]", "cityCode", "AiDraftRequest",
-                "AiDraftResult", "TemplateConfigRequest")) {
+                "cities: string[]", "industries: string[]", "salary?: string[]", "cityCode",
+                "AiDraftRequest", "AiDraftResult", "TemplateConfigRequest")) {
             assertTrue(types.contains(field), "向导类型缺少新字段：" + field);
         }
     }

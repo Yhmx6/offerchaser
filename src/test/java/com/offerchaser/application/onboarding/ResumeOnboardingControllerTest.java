@@ -164,6 +164,9 @@ class ResumeOnboardingControllerTest {
                 .andExpect(jsonPath("$.data.name").value("AI 模板"))
                 .andExpect(jsonPath("$.data.direction").value("AI 产品经理"))
                 .andExpect(jsonPath("$.data.config.enableAI").value(true))
+                .andExpect(jsonPath("$.data.config.salary[0]").value("10-20K"))
+                .andExpect(jsonPath("$.data.config.expectedSalaryMin").value(20))
+                .andExpect(jsonPath("$.data.config.expectedSalaryMax").value(30))
                 .andExpect(jsonPath("$.data.warnings[0]").value("草稿提醒"));
 
         ArgumentCaptor<AiDraftRequest> captor = ArgumentCaptor.forClass(AiDraftRequest.class);
@@ -172,6 +175,30 @@ class ResumeOnboardingControllerTest {
         assertEquals(3, captor.getValue().profile().yearsExperience());
         assertNull(captor.getValue().cities(), "旧请求不传 cities 时保持 null（后端按 cityCode 回退）");
         assertNull(captor.getValue().industries());
+        assertNull(captor.getValue().salary(), "旧请求不传 salary 时保持 null（后端回退画像推荐值）");
+    }
+
+    @Test
+    void aiDraftAcceptsSalaryFields() throws Exception {
+        when(draftService.generate(any(AiDraftRequest.class))).thenReturn(sampleDraft());
+
+        mockMvc.perform(post("/api/boss/templates/ai-draft")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"profile":{"yearsExperience":3,"roles":["产品经理"]},
+                                 "direction":"AI 产品经理","keywords":["AI 产品经理"],
+                                 "salary":["10-20K","20-30K"],
+                                 "expectedSalaryMin":12,"expectedSalaryMax":28,
+                                 "intensity":"normal","sendImgResume":true,"templateName":"AI 模板"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+
+        ArgumentCaptor<AiDraftRequest> captor = ArgumentCaptor.forClass(AiDraftRequest.class);
+        verify(draftService).generate(captor.capture());
+        assertEquals(List.of("10-20K", "20-30K"), captor.getValue().salary(), "salary 档位数组按 camelCase 反序列化");
+        assertEquals(12, captor.getValue().expectedSalaryMin());
+        assertEquals(28, captor.getValue().expectedSalaryMax());
     }
 
     @Test
@@ -233,7 +260,8 @@ class ResumeOnboardingControllerTest {
 
     private static AiDraftResult sampleDraft() {
         TemplateConfigRequest config = new TemplateConfigRequest(
-                List.of("AI 产品经理"), "上海", null, null, null, null, null, null, null,
+                List.of("AI 产品经理"), "上海", null, null, null, null,
+                List.of("10-20K"), null, null,
                 20, 30, true, true, null, null, null, null, null, null,
                 null, "3 年产品经理经验；熟悉 SQL。", null, null);
         return new AiDraftResult("AI 模板", "AI 产品经理", "草稿说明", config, List.of("草稿提醒"));

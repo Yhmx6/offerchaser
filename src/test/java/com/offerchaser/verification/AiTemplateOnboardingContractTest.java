@@ -331,7 +331,12 @@ class AiTemplateOnboardingContractTest {
                 .andExpect(jsonPath("$.data.config.experience[0]").value("5-10年"))
                 .andExpect(jsonPath("$.data.config.scale[0]").value("20-99人"))
                 .andExpect(jsonPath("$.data.config.scale[4]").value("10000人以上"))
-                .andExpect(jsonPath("$.data.config.stage").isEmpty());
+                .andExpect(jsonPath("$.data.config.stage").isEmpty())
+                .andExpect(jsonPath("$.data.config.salary").isEmpty())
+                .andExpect(jsonPath("$.data.config.expectedSalaryMin").value(30))
+                .andExpect(jsonPath("$.data.config.expectedSalaryMax").value(50))
+                .andExpect(jsonPath("$.data.config.rule.expectedSalaryMin").value(30))
+                .andExpect(jsonPath("$.data.config.rule.expectedSalaryMax").value(0));
 
         verifyNoInteractions(aiService);
 
@@ -401,6 +406,22 @@ class AiTemplateOnboardingContractTest {
     }
 
     @Test
+    void aiDraftAcceptsSalaryFieldsFromJson() throws Exception {
+        mockMvc.perform(post("/api/boss/templates/ai-draft")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(draftJsonWithSalary()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.config.salary[0]").value("10-20K"))
+                .andExpect(jsonPath("$.data.config.salary[1]").value("20-30K"))
+                .andExpect(jsonPath("$.data.config.expectedSalaryMin").value(12))
+                .andExpect(jsonPath("$.data.config.expectedSalaryMax").value(28))
+                .andExpect(jsonPath("$.data.config.rule.expectedSalaryMin").value(12))
+                .andExpect(jsonPath("$.data.config.rule.expectedSalaryMax").value(0));
+        verifyNoInteractions(aiService);
+    }
+
+    @Test
     void draftMapsCitiesIndustriesDegreeExperienceScaleAndStage() {
         ResumeProfile profile = fullProfile(3, "本科", "软件工程", 2020,
                 List.of("上海", "杭州"), List.of("互联网/AI"));
@@ -430,33 +451,88 @@ class AiTemplateOnboardingContractTest {
         assertTrue(config.rule().jobDirections().isEmpty(), "AI 草稿不再写方向规则（置空）");
         assertEquals(30, config.rule().expectedSalaryMin(), "规则薪资只设下限");
         assertEquals(0, config.rule().expectedSalaryMax(), "规则薪资上限固定 0（未设置）");
-        assertNull(config.expectedSalaryMin(), "A 区期望月薪下限不再写入（null=沿用/未设置）");
-        assertNull(config.expectedSalaryMax(), "A 区期望月薪上限不再写入（null=沿用/未设置）");
+        assertEquals(30, config.expectedSalaryMin(), "A 区期望月薪下限写请求真实值");
+        assertEquals(50, config.expectedSalaryMax(), "A 区期望月薪上限写请求真实值");
+        assertEquals(List.of(), config.salary(), "旧请求未传档位时 config.salary 为空列表（不限）");
+        assertTrue(result.warnings().contains("未选择 BOSS 薪资范围档位，草稿未设置薪资筛选"),
+                "未选档位应有提示");
         assertPolicy(config.deliveryPolicy(), 2, 5, 20);
     }
 
     @Test
-    void draftSalaryOnlyLowerBoundIgnoresProfileUpperBound() {
+    void draftWritesSalaryBracketsAndRealBoundsIntoConfig() {
         ResumeProfile profile = fullProfile(5, "本科", "软件工程", 2020,
                 List.of("上海"), List.of("互联网/AI"));
         AiDraftRequest request = new AiDraftRequest(profile, "Java 后端",
-                List.of("Java"), null, 60, null, List.of(),
+                List.of("Java"), null, 12, 28, List.of("外包"),
                 "normal", false, "Java 后端 模板",
-                List.of("上海"), List.of());
+                List.of("上海"), List.of("互联网/AI"),
+                List.of("10-20K", "20-30K"));
 
-        // 用户下限 60 > 简历推荐上限 50：上限不写入规则，也不得因此报错。
         AiDraftResult result = draftService.generate(request);
-        assertEquals(60, result.config().rule().expectedSalaryMin(), "只写用户确认的下限");
-        assertEquals(0, result.config().rule().expectedSalaryMax(), "上限固定 0=未设置");
-        assertNull(result.config().expectedSalaryMin(), "A 区下限应为 null");
-        assertNull(result.config().expectedSalaryMax(), "A 区上限应为 null");
+        assertEquals(List.of("10-20K", "20-30K"), result.config().salary(), "BOSS 薪资档位写入 config.salary");
+        assertEquals(12, result.config().expectedSalaryMin(), "config 写真实下限");
+        assertEquals(28, result.config().expectedSalaryMax(), "config 写真实上限");
+        assertEquals(12, result.config().rule().expectedSalaryMin(), "规则层只写真实下限");
+        assertEquals(0, result.config().rule().expectedSalaryMax(), "规则层上限仍固定 0：不改变既有筛选语义");
+        assertFalse(result.warnings().stream().anyMatch(warning -> warning.contains("薪资")),
+                "薪资完整时不应有薪资相关提示：" + result.warnings());
+    }
 
-        // 旧客户端若仍传上限（60,20）也不得报错/写入上限：只保留下限。
-        AiDraftResult withLegacyMax = draftService.generate(new AiDraftRequest(profile, "Java",
-                List.of("Java"), null, 60, 20, List.of(), "normal", false, "x",
+    @Test
+    void draftExplicitNullSalaryWithBracketsDoesNotFallBackToProfile() {
+        // profile 自带 30/50，但用户显式清空（min/max=null）且选了档位：不得用画像推荐值回填。
+        ResumeProfile profile = fullProfile(5, "本科", "软件工程", 2020,
+                List.of("上海"), List.of("互联网/AI"));
+        AiDraftRequest request = new AiDraftRequest(profile, "Java 后端",
+                List.of("Java"), null, null, null, List.of(),
+                "normal", false, "Java 后端 模板",
+                List.of("上海"), List.of("互联网/AI"), List.of("10-20K"));
+
+        AiDraftResult result = draftService.generate(request);
+        assertNull(result.config().expectedSalaryMin(), "显式 null 下限不得回退画像");
+        assertNull(result.config().expectedSalaryMax(), "显式 null 上限不得回退画像");
+        assertNull(result.config().rule().expectedSalaryMin(), "规则层也不得回填画像下限");
+        assertEquals(0, result.config().rule().expectedSalaryMax());
+        assertEquals(List.of("10-20K"), result.config().salary(), "档位照常写入");
+        assertTrue(result.warnings().contains("未提供期望薪资，草稿未设置薪资区间"));
+        assertFalse(result.warnings().contains("未选择 BOSS 薪资范围档位，草稿未设置薪资筛选"),
+                "已选档位时不应提示未选档位");
+    }
+
+    @Test
+    void draftLegacyRequestWithoutSalaryFallsBackToProfileNumbers() {
+        ResumeProfile profile = fullProfile(5, "本科", "软件工程", 2020,
+                List.of("上海"), List.of("互联网/AI"));
+        AiDraftRequest legacy = new AiDraftRequest(profile, "Java 后端",
+                List.of("Java"), "上海", null, null, List.of("外包"),
+                "trial", false, "Java 后端 模板");
+
+        AiDraftResult result = draftService.generate(legacy);
+        assertEquals(30, result.config().expectedSalaryMin(), "旧请求回退画像下限");
+        assertEquals(50, result.config().expectedSalaryMax(), "旧请求回退画像上限");
+        assertEquals(30, result.config().rule().expectedSalaryMin());
+        assertEquals(0, result.config().rule().expectedSalaryMax());
+        assertEquals(List.of(), result.config().salary());
+    }
+
+    @Test
+    void draftSalaryBoundsFollowRequestAndRuleKeepsLowerBoundOnly() {
+        ResumeProfile profile = fullProfile(5, "本科", "软件工程", 2020,
+                List.of("上海"), List.of("互联网/AI"));
+
+        // 用户下限 60 > 简历推荐上限 50：请求值优先，不因画像上限报错/回退。
+        AiDraftResult result = draftService.generate(new AiDraftRequest(profile, "Java 后端",
+                List.of("Java"), null, 60, null, List.of(), "normal", false, "Java 后端 模板",
                 List.of("上海"), List.of()));
-        assertEquals(60, withLegacyMax.config().rule().expectedSalaryMin());
-        assertEquals(0, withLegacyMax.config().rule().expectedSalaryMax());
+        assertEquals(60, result.config().rule().expectedSalaryMin(), "规则层只写用户确认的下限");
+        assertEquals(0, result.config().rule().expectedSalaryMax(), "规则层上限固定 0=未设置");
+        assertEquals(60, result.config().expectedSalaryMin(), "A 区下限写真实值");
+        assertNull(result.config().expectedSalaryMax(), "请求未传上限时 A 区上限留空（沿用当前值）");
+
+        // min > max：非法区间必须报 DRAFT_INVALID（新契约，不允许再静默忽略 max）。
+        assertDraftInvalid(new AiDraftRequest(profile, "Java", List.of("Java"), null,
+                60, 20, List.of(), "normal", false, "x", List.of("上海"), List.of()));
     }
 
     @Test
@@ -665,6 +741,15 @@ class AiTemplateOnboardingContractTest {
     }
 
     private static String draftJson(String intensity) {
+        return draftJsonBody(intensity, null, 30, 50);
+    }
+
+    private static String draftJsonWithSalary() {
+        return draftJsonBody("normal", List.of("10-20K", "20-30K"), 12, 28);
+    }
+
+    private static String draftJsonBody(String intensity, List<String> salaryBrackets,
+                                        int expectedSalaryMin, int expectedSalaryMax) {
         try {
             Map<String, Object> profile = new java.util.LinkedHashMap<>();
             profile.put("yearsExperience", 5);
@@ -689,8 +774,11 @@ class AiTemplateOnboardingContractTest {
             body.put("cities", List.of("上海", "杭州"));
             body.put("industries", List.of("互联网/AI", "企业服务"));
             body.put("cityCode", "上海");
-            body.put("expectedSalaryMin", 30);
-            body.put("expectedSalaryMax", 50);
+            body.put("expectedSalaryMin", expectedSalaryMin);
+            body.put("expectedSalaryMax", expectedSalaryMax);
+            if (salaryBrackets != null) {
+                body.put("salary", salaryBrackets);
+            }
             body.put("exclusions", List.of("外包"));
             body.put("intensity", intensity);
             body.put("sendImgResume", true);

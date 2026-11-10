@@ -259,16 +259,15 @@ class TemplateConfigEditorFrontendDeliveryCheckTest {
         assertTrue(toView.contains("positiveOrNull"), "0/负数应按未设置处理");
         assertTrue(templateService.contains("A 区期望月薪已废弃"), "应注明 A 区薪资已废弃");
 
-        // AI 向导仍只问下限（本轮只改模板编辑器）
+        // AI 向导已同步支持薪资范围（上下限 + BOSS 薪资档位）；规则层仍只写下限
         String wizard = Files.readString(FRONT.resolve("app/components/setup/AiTemplateWizard.tsx"));
-        assertTrue(wizard.contains("期望月薪下限是多少？"), "AI 向导薪资问题只问下限");
-        assertFalse(wizard.contains("期望月薪上限是多少？"), "不得再问薪资上限");
-        assertTrue(wizard.contains("月薪下限（K，只设下限）"), "向导只保留一个下限输入");
-        assertFalse(wizard.contains("月薪上限（K）"), "向导不得再有上限输入");
-        assertTrue(wizard.contains("expectedSalaryMax: null"), "请求 expectedSalaryMax 必须为 null");
-        assertTrue(wizard.contains("`${rule.expectedSalaryMin}K 起`")
-                        || wizard.contains("rule?.expectedSalaryMin != null"),
-                "预览应从规则显示 minK 起");
+        assertTrue(wizard.contains("期望薪资范围是多少？"), "AI 向导薪资问题应为期望薪资范围");
+        assertTrue(wizard.contains("BOSS 薪资范围"), "向导应提供 BOSS 薪资档位选择");
+        assertTrue(wizard.contains("expectedSalaryMax: numberOrNull(answers.salaryMax)"),
+                "请求应提交期望月薪上限");
+        assertTrue(wizard.contains("salary: answers.salary"), "请求应提交 BOSS 薪资档位");
+        assertFalse(wizard.contains("expectedSalaryMax: null"), "请求不应再把上限写死为 null");
+        assertTrue(wizard.contains("salaryRangeText"), "预览应按区间展示期望月薪");
 
         // 规则服务允许 0=未设置
         String ruleService = Files.readString(Path.of("src", "main", "java",

@@ -90,7 +90,8 @@ public class ResumeOnboardingController {
     /**
      * 根据已确认画像与向导问答生成模板草稿。
      *
-     * @param request 草稿请求（profile/direction/keywords/cityCode/薪资/exclusions/intensity/sendImgResume/templateName）
+     * @param request 草稿请求（profile/direction/keywords/cityCode|cities/行业/薪资上下限/BOSS 薪资档位 salary/
+     *                exclusions/intensity/sendImgResume/templateName）
      * @return {@code {success:true,data:{name,direction,description,config,warnings}}}
      */
     @PostMapping("/templates/ai-draft")

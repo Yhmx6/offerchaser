@@ -38,6 +38,9 @@ public class TemplateDraftService {
     /** 行业：最多 6 个（用户确认的行业名称） */
     private static final int MAX_INDUSTRIES = 6;
     private static final int MAX_INDUSTRY_LENGTH = 40;
+    /** BOSS 薪资档位：最多 6 个，单项档位名限长 */
+    private static final int MAX_SALARY_BRACKETS = 6;
+    private static final int MAX_SALARY_BRACKET_LENGTH = 20;
     /** 模板名/方向/描述长度（与模板保存接口的限制一致） */
     private static final int MAX_TEMPLATE_NAME = 60;
     private static final int MAX_DIRECTION = 40;
@@ -93,9 +96,15 @@ public class TemplateDraftService {
 
         List<String> industries = normalizeTextList(request.industries(), "行业", MAX_INDUSTRIES, MAX_INDUSTRY_LENGTH);
 
-        Integer salaryMin = firstNonNull(request.expectedSalaryMin(), profile.expectedSalaryMin());
-        // 只写下限；不再用简历推荐上限校验，也不把上限写入规则。
-        Integer salaryMax = null;
+        // 薪资：请求优先。只有旧前端完全没提薪资（min/max 都是 null 且不带 salary 字段）时才回退画像推荐值；
+        // 新前端显式传 null（用户清空）时必须尊重，不能用画像偷偷填回。
+        List<String> salaryBrackets = normalizeTextList(
+                request.salary(), "薪资范围", MAX_SALARY_BRACKETS, MAX_SALARY_BRACKET_LENGTH);
+        boolean salaryUnspecified = request.expectedSalaryMin() == null
+                && request.expectedSalaryMax() == null
+                && request.salary() == null;
+        Integer salaryMin = salaryUnspecified ? profile.expectedSalaryMin() : request.expectedSalaryMin();
+        Integer salaryMax = salaryUnspecified ? profile.expectedSalaryMax() : request.expectedSalaryMax();
         validateSalary(salaryMin, salaryMax);
         List<String> exclusions = normalizeTextList(request.exclusions(), "排除词", MAX_EXCLUSIONS, MAX_EXCLUSION_LENGTH);
         String intensity = normalizeIntensity(request.intensity());
@@ -120,6 +129,9 @@ public class TemplateDraftService {
         if (salaryMin == null && salaryMax == null) {
             warnings.add("未提供期望薪资，草稿未设置薪资区间");
         }
+        if (salaryBrackets.isEmpty()) {
+            warnings.add("未选择 BOSS 薪资范围档位，草稿未设置薪资筛选");
+        }
         if (exclusions.isEmpty()) {
             warnings.add("未填写排除词，草稿的职位黑名单为空");
         }
@@ -142,6 +154,7 @@ public class TemplateDraftService {
                 null,
                 null);
 
+        // 薪资档位写进 BOSS 配置的 salary（空列表=清空/不限），上下限写真实值（null=沿用模板当前值）。
         TemplateConfigRequest config = new TemplateConfigRequest(
                 keywords,
                 primaryCity,
@@ -149,11 +162,11 @@ public class TemplateDraftService {
                 industries.isEmpty() ? null : industries,
                 experienceOption,
                 bossDegreeOption(profile.highestDegree()),
-                null,
+                salaryBrackets,
                 DEFAULT_SCALES,
                 List.of(),
-                null,
-                null,
+                salaryMin,
+                salaryMax,
                 true,
                 sendImgResume,
                 null,
@@ -376,9 +389,5 @@ public class TemplateDraftService {
     private static String joinLimit(List<String> values, int limit, String separator) {
         List<String> selected = values.size() <= limit ? values : values.subList(0, limit);
         return String.join(separator, selected);
-    }
-
-    private static <T> T firstNonNull(T first, T second) {
-        return first != null ? first : second;
     }
 }
